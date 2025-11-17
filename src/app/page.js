@@ -1,7 +1,9 @@
+// src/app/page.js
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation"; // 페이지 이동을 위한 라우터
 
 // 1. Supabase 클라이언트 설정
 const supabase = createClient(
@@ -12,18 +14,14 @@ const supabase = createClient(
 // 2. 구글 맵 API 키
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// 3. 백엔드 서버 주소 (배포된 Render 주소 입력)
+// 3. 백엔드 서버 주소 (배포된 Render 주소)
+// 본인의 실제 Render 주소인지 꼭 확인하세요!
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
-// 주의: 위 주소는 예시일 수 있습니다. 본인의 Render 주소가 맞는지 꼭 확인하세요!
 
 export default function Home() {
-  // --- State 관리 ---
+  // --- 상태 관리 (State) ---
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoginMode, setIsLoginMode] = useState(true);
-
-  const [activeTab, setActiveTab] = useState("home"); // home, mytrip, login
+  const [activeTab, setActiveTab] = useState("home"); // home, mytrip
   const [myTrips, setMyTrips] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -32,8 +30,10 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  
+  const router = useRouter(); // 페이지 이동 도구
 
-  // --- 초기화 및 데이터 로드 ---
+  // --- 초기화: 유저 세션 확인 ---
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -47,7 +47,7 @@ export default function Home() {
     checkUser();
   }, []);
 
-  // 내 여행 목록 불러오기
+  // --- 데이터 로드: 내 여행 목록 ---
   useEffect(() => {
     if (activeTab === "mytrip" && user) {
       axios.get(`${API_BASE_URL}/my-trips?user_id=${user.id}`)
@@ -57,35 +57,14 @@ export default function Home() {
   }, [activeTab, user]);
 
   // --- 핸들러 함수들 ---
-  
-  // 이메일 로그인/가입
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    const func = isLoginMode ? supabase.auth.signInWithPassword : supabase.auth.signUp;
-    const { error } = await func({ email, password });
-    if (error) alert(error.message);
-    else { 
-      if (!isLoginMode) alert("가입 성공! 로그인되었습니다.");
-      setActiveTab("home"); 
-    }
-  };
 
-  // 소셜 로그인 (구글)
-  const handleSocialLogin = async (provider) => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: provider,
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) alert(error.message);
-  };
-
+  // 로그아웃
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setActiveTab("home");
-    setResult(null);
+    window.location.reload(); // 새로고침하여 상태 초기화
   };
 
-  // 여행 생성 요청
+  // 일정 생성 요청
   const handleGenerate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -95,7 +74,7 @@ export default function Home() {
     try {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, {
         ...formData,
-        user_id: user ? user.id : null
+        user_id: user ? user.id : null // 로그인 상태면 ID 전달
       });
       setResult(res.data.data);
     } catch (err) {
@@ -105,16 +84,16 @@ export default function Home() {
     }
   };
 
-  // [핵심] 지도 URL 생성기 (Place ID 우선, 없으면 이름 검색 + 전체 경로 연결)
+  // 지도 URL 생성 (경로 연결 + 폴백 처리)
   const getMapUrl = (activities) => {
-    // 유효한 장소 필터링
+    // 유효한 장소만 필터링 (이동, 숙소 제외)
     const validPlaces = activities.filter(a => 
       a.place_name && !a.place_name.includes("이동") && a.type !== "숙소"
     );
 
     if (validPlaces.length < 2) return null;
 
-    // 장소 포맷팅 헬퍼 (ID가 있으면 ID 사용, 없으면 이름 사용)
+    // Place ID가 있으면 사용, 없으면 이름으로 인코딩
     const formatPlace = (place) => {
       return place.place_id 
         ? `place_id:${place.place_id}` 
@@ -124,6 +103,7 @@ export default function Home() {
     const origin = formatPlace(validPlaces[0]);
     const destination = formatPlace(validPlaces[validPlaces.length - 1]);
     
+    // 경유지 설정
     let waypoints = "";
     if (validPlaces.length > 2) {
       const wpList = validPlaces.slice(1, -1).map(p => formatPlace(p)).join("|");
@@ -133,11 +113,11 @@ export default function Home() {
     return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
-
   // --- 화면 렌더링 ---
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      {/* 네비게이션 */}
+      
+      {/* 1. 상단 네비게이션 */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
           <span className="text-2xl font-extrabold text-blue-600 cursor-pointer" onClick={() => setActiveTab("home")}>
@@ -158,13 +138,19 @@ export default function Home() {
           <div>
             {user ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 hidden sm:inline">{user.email?.split("@")[0]}님</span>
+                <span className="text-sm text-gray-500 hidden sm:inline">
+                  {user.email?.split("@")[0]}님
+                </span>
                 <button onClick={handleLogout} className="text-sm text-red-500 border border-red-200 px-3 py-1 rounded hover:bg-red-50">
                   로그아웃
                 </button>
               </div>
             ) : (
-              <button onClick={() => setActiveTab("login")} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition">
+              // 로그인 버튼 클릭 시 /login 페이지로 이동
+              <button 
+                onClick={() => router.push('/login')} 
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition"
+              >
                 로그인 / 가입
               </button>
             )}
@@ -172,59 +158,19 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 메인 콘텐츠 */}
+      {/* 2. 메인 콘텐츠 영역 */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         
-        {/* 1. 로그인 탭 */}
-        {activeTab === "login" && !user && (
-          <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg mt-10">
-            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              {isLoginMode ? "TripGen 로그인" : "회원가입"}
-            </h2>
-            
-            {/* 이메일 폼 */}
-            <form onSubmit={handleAuth} className="space-y-4">
-              <input 
-                type="email" placeholder="이메일 주소" className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                value={email} onChange={e=>setEmail(e.target.value)} required 
-              />
-              <input 
-                type="password" placeholder="비밀번호" className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                value={password} onChange={e=>setPassword(e.target.value)} required 
-              />
-              <button className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">
-                {isLoginMode ? "로그인" : "가입하기"}
-              </button>
-            </form>
-
-            {/* 구분선 */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">또는</span></div>
-            </div>
-
-            {/* 구글 로그인 버튼 */}
-            <button 
-              onClick={() => handleSocialLogin("google")}
-              className="w-full border border-gray-300 p-3 rounded-lg font-bold text-gray-700 flex items-center justify-center hover:bg-gray-50 transition"
-            >
-              <span className="mr-2">🇬</span> Google로 계속하기
-            </button>
-
-            <p className="text-center mt-6 text-sm text-gray-500 cursor-pointer hover:text-blue-600" onClick={() => setIsLoginMode(!isLoginMode)}>
-              {isLoginMode ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
-            </p>
-          </div>
-        )}
-
-        {/* 2. 내 여행 탭 */}
-        {activeTab === "mytrip" && (
+        {/* [탭 1] 내 여행 보관함 */}
+        {activeTab === "mytrip" && user && (
           <div className="space-y-6 animate-fade-in-up">
             <h2 className="text-2xl font-bold text-gray-800">🧳 내 여행 보관함</h2>
             {myTrips.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-xl shadow-sm">
                 <p className="text-gray-500 mb-4">저장된 여행 일정이 없습니다.</p>
-                <button onClick={() => setActiveTab("home")} className="text-blue-600 font-bold underline">첫 여행 계획하기</button>
+                <button onClick={() => setActiveTab("home")} className="text-blue-600 font-bold underline">
+                  첫 여행 계획하기
+                </button>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -243,10 +189,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* 3. 홈 (일정 생성 및 결과) 탭 */}
+        {/* [탭 2] 홈 (일정 생성 및 결과 확인) */}
         {activeTab === "home" && (
           <>
-            {/* 입력 폼 */}
+            {/* 입력 폼 (결과가 없을 때만 표시) */}
             {!result && (
               <div className="bg-white p-8 rounded-2xl shadow-lg animate-fade-in-up">
                 <div className="text-center mb-8">
@@ -282,7 +228,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <button disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition disabled:opacity-50">
                     {loading ? "✨ AI가 최적의 경로를 계산 중입니다..." : "🚀 여행 일정 생성하기"}
                   </button>
                 </form>
@@ -292,7 +238,8 @@ export default function Home() {
             {/* 결과 화면 */}
             {result && result.itinerary_data && (
               <div className="animate-fade-in-up">
-                {/* 헤더 */}
+                
+                {/* 상단 헤더 */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 border-b pb-4 gap-4">
                   <div>
                     <h2 className="text-3xl font-bold text-gray-900">{result.itinerary_data.trip_title}</h2>
@@ -306,7 +253,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* 날짜 네비게이션 */}
+                {/* 날짜 이동 컨트롤 */}
                 <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-6">
                   <button 
                     onClick={() => setCurrentDayIndex(Math.max(0, currentDayIndex - 1))} 
@@ -334,7 +281,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* 🗺️ 지도 (Embed API) */}
+                {/* 🗺️ 지도 (Google Embed API) */}
                 <div className="w-full h-80 bg-gray-200 rounded-2xl overflow-hidden shadow-inner mb-8 border border-gray-300 relative">
                    {getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
                      <iframe
@@ -343,7 +290,6 @@ export default function Home() {
                        style={{ border: 0 }}
                        loading="lazy"
                        allowFullScreen
-                       referrerPolicy="no-referrer-when-downgrade"
                        src={getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities)}
                      ></iframe>
                    ) : (
@@ -354,14 +300,14 @@ export default function Home() {
                    )}
                 </div>
 
-                {/* 📋 타임라인 일정 리스트 */}
+                {/* 📋 일정 리스트 (타임라인 스타일) */}
                 <div className="relative border-l-2 border-blue-100 ml-4 md:ml-6 pb-10 space-y-8">
                   {result.itinerary_data.itinerary[currentDayIndex].activities.map((act, idx) => (
                     <div key={idx} className="ml-8 relative">
                       {/* 타임라인 점 */}
                       <div className="absolute -left-[41px] top-6 bg-blue-600 w-4 h-4 rounded-full border-4 border-white shadow-md z-10"></div>
                       
-                      {/* 이동 정보 (이 장소로 오기까지) */}
+                      {/* 이동 정보 (다음 장소까지가 아니라, 이 장소로 오기까지의 정보) */}
                       {act.travel_info && (
                         <div className="mb-3 -ml-2 inline-flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
                           <span className="text-xs text-blue-500">⬇️ 이동</span>
@@ -370,9 +316,9 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* 장소 카드 */}
+                      {/* 장소 정보 카드 */}
                       <div className="bg-white p-5 rounded-xl shadow-md hover:shadow-xl transition duration-300 flex flex-col md:flex-row gap-5 border border-gray-100">
-                        {/* 사진 */}
+                        {/* 이미지 영역 */}
                         <div className="w-full md:w-40 h-40 shrink-0 bg-gray-100 rounded-lg overflow-hidden relative">
                            {act.photoUrl ? (
                              <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover hover:scale-105 transition duration-500" />
@@ -386,7 +332,7 @@ export default function Home() {
                            )}
                         </div>
 
-                        {/* 내용 */}
+                        {/* 텍스트 영역 */}
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <span className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-bold font-mono">{act.time}</span>
