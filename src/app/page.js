@@ -1,3 +1,4 @@
+// src/app/page.js
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -11,6 +12,7 @@ const supabase = createClient(
 );
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+// 본인의 Render 주소 확인 필수
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
 
 export default function Home() {
@@ -52,6 +54,15 @@ export default function Home() {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+
+    // 🔒 [보안] 비로그인 유저 차단
+    if (!user) {
+      if (confirm("로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?")) {
+        router.push('/login');
+      }
+      return;
+    }
+
     setLoading(true); setResult(null); setCurrentDayIndex(0);
     try {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
@@ -83,39 +94,38 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      {/* 네비게이션 바 */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
           
-          {/* 왼쪽: 로고 및 탭 */}
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2" onClick={() => setActiveTab("home")}>
+              {/* 빨간색 v2.0 배지 제거됨 */}
               <span className="text-2xl font-extrabold text-blue-600 cursor-pointer">✈️ TripGen</span>
-              {/* 버전 확인용 빨간 글씨 (배포 확인 후 지우세요) */}
-              <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-bold">v2.0</span>
             </div>
-            
             <div className="hidden md:flex gap-6">
               <button onClick={() => setActiveTab("home")} className={`font-medium ${activeTab==="home" ? "text-blue-600" : "text-gray-500"}`}>일정 생성</button>
-              {/* 로그인이 안 되어 있으면 이 탭은 숨겨집니다 */}
               {user && <button onClick={() => setActiveTab("mytrip")} className={`font-medium ${activeTab==="mytrip" ? "text-blue-600" : "text-gray-500"}`}>내 여행 보관함</button>}
             </div>
           </div>
 
-          {/* 오른쪽: 로그인 버튼 (무조건 보임) */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             {isUserLoading ? (
-              <div className="w-24 h-9 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
             ) : user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 hidden sm:inline">{user.email?.split("@")[0]}님</span>
-                <button onClick={async () => { await supabase.auth.signOut(); window.location.reload(); }} className="text-sm text-red-500 border border-red-200 px-3 py-1.5 rounded hover:bg-red-50 transition">로그아웃</button>
-              </div>
+              <>
+                {/* 관리자 버튼 (관리자일 때만 보임) */}
+                {/* 관리자 이메일은 .env에 설정된 값과 비교 */}
+                {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+                  <button onClick={() => router.push('/admin')} className="text-xs bg-gray-800 text-white px-3 py-1.5 rounded font-bold">
+                    관리자
+                  </button>
+                )}
+                <button onClick={() => router.push('/mypage')} className="text-sm font-bold text-gray-600 hover:text-blue-600 border px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-blue-50 transition">
+                  마이페이지
+                </button>
+              </>
             ) : (
-              <button 
-                onClick={() => router.push('/login')} 
-                className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition"
-              >
+              <button onClick={() => router.push('/login')} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition">
                 로그인 / 가입
               </button>
             )}
@@ -123,9 +133,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 메인 콘텐츠 */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* 탭 1: 내 여행 보관함 */}
         {activeTab === "mytrip" && user && (
           <div className="space-y-6 animate-fade-in-up">
             <h2 className="text-2xl font-bold text-gray-800">🧳 내 여행 보관함</h2>
@@ -142,7 +150,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 탭 2: 홈 */}
         {activeTab === "home" && (
           <>
             {!result && (
@@ -178,14 +185,12 @@ export default function Home() {
                   <button onClick={() => setCurrentDayIndex(Math.min(result.itinerary_data.itinerary.length-1, currentDayIndex + 1))} disabled={currentDayIndex===result.itinerary_data.itinerary.length-1} className="px-4 py-2 bg-gray-100 rounded-lg disabled:opacity-30 font-bold">다음 →</button>
                 </div>
 
-                {/* 지도 영역 (높이 고정) */}
                 <div className="w-full h-96 bg-gray-100 rounded-2xl overflow-hidden shadow-inner mb-8 border border-gray-300 relative">
                    {getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
                      <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities)}></iframe>
                    ) : <div className="flex h-full flex-col items-center justify-center text-gray-500"><span className="text-4xl mb-2">🗺️</span><span>지도를 표시할 경로 정보가 부족합니다.</span></div>}
                 </div>
 
-                {/* 일정 리스트 */}
                 <div className="space-y-4 pb-20">
                   {result.itinerary_data.itinerary[currentDayIndex].activities.map((act, idx) => (
                     <div key={idx} className="bg-white p-4 rounded-xl shadow flex gap-4 border border-gray-100">
