@@ -1,240 +1,224 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+// 구글 맵 키 (화면 표시용)
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default function Home() {
-  // --- 상태 관리 ---
-  // 1. 탭 상태 (home, mytrip)
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  
   const [activeTab, setActiveTab] = useState("home");
-
-  // 2. 입력 폼 상태 (시작일, 종료일 분리)
-  const [formData, setFormData] = useState({
-    destination: "",
-    startDate: "",
-    endDate: "",
-    style: "",
-    companions: "",
-  });
-
-  // 3. 결과 및 화면 표시 상태
+  const [myTrips, setMyTrips] = useState([]);
+  
+  const [formData, setFormData] = useState({ destination: "", startDate: "", endDate: "", style: "", companions: "" });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [currentDayIndex, setCurrentDayIndex] = useState(0); // 현재 보고 있는 날짜 (0일차, 1일차...)
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
 
-  // --- 핸들러 ---
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // 백엔드 주소 (배포 시 Render 주소로 변경되어 있어야 함!)
+  const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setUser(session.user);
+      supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    };
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "mytrip" && user) {
+      axios.get(`${API_BASE_URL}/my-trips?user_id=${user.id}`)
+        .then(res => setMyTrips(res.data.data))
+        .catch(err => console.error(err));
+    }
+  }, [activeTab, user]);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    const func = isLoginMode ? supabase.auth.signInWithPassword : supabase.auth.signUp;
+    const { error } = await func({ email, password });
+    if (error) alert(error.message);
+    else { setActiveTab("home"); alert(isLoginMode ? "로그인 성공!" : "가입 성공!"); }
   };
 
-  const handleSubmit = async (e) => {
+  const handleGenerate = async (e) => {
     e.preventDefault();
-    
-    // 날짜 유효성 검사
-    if (formData.startDate > formData.endDate) {
-      alert("종료일이 시작일보다 빠를 수 없습니다.");
-      return;
-    }
-
     setLoading(true);
     setResult(null);
-    setCurrentDayIndex(0); // 결과 나오면 1일차부터 보여주기
-
+    setCurrentDayIndex(0);
     try {
-      const response = await axios.post("https://tripgen-server.onrender.com/api/generate-trip", formData);
-      if (response.data.success) {
-        setResult(response.data.data);
-      }
-    } catch (error) {
-      alert("서버 오류가 발생했습니다.");
-      console.error(error);
+      const res = await axios.post(`${API_BASE_URL}/generate-trip`, {
+        ...formData,
+        user_id: user ? user.id : null
+      });
+      setResult(res.data.data);
+    } catch (err) {
+      alert("생성 실패: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
   };
 
-  // 날짜 이동 버튼 핸들러
-  const handlePrevDay = () => {
-    if (currentDayIndex > 0) setCurrentDayIndex(currentDayIndex - 1);
-  };
+  // [업그레이드] 정확한 Place ID 기반 지도 경로 URL
+  const getMapUrl = (activities) => {
+    // Place ID가 있는 장소들만 골라내기
+    const validPlaces = activities.filter(a => a.place_id);
+    if (validPlaces.length < 2) return null;
 
-  const handleNextDay = () => {
-    if (result && currentDayIndex < result.itinerary_data.itinerary.length - 1) {
-      setCurrentDayIndex(currentDayIndex + 1);
+    const origin = `place_id:${validPlaces[0].place_id}`;
+    const destination = `place_id:${validPlaces[validPlaces.length - 1].place_id}`;
+    
+    // 경유지 (중간 장소들)
+    let waypoints = "";
+    if (validPlaces.length > 2) {
+      const waypointsIds = validPlaces.slice(1, -1).map(p => `place_id:${p.place_id}`).join("|");
+      waypoints = `&waypoints=${encodeURIComponent(waypointsIds)}`;
     }
+
+    return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
-  // --- UI 렌더링 ---
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      
-      {/* 1. 상단 네비게이션 (탭) */}
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <span className="text-2xl font-extrabold text-blue-600 mr-8 cursor-pointer" onClick={() => window.location.reload()}>
-                ✈️ TripGen
-              </span>
-              <div className="hidden md:flex space-x-8">
-                <button 
-                  onClick={() => setActiveTab("home")}
-                  className={`${activeTab === "home" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-900"} px-1 pt-1 text-sm font-medium h-16`}
-                >
-                  일정 생성
-                </button>
-                <button 
-                  onClick={() => setActiveTab("mytrip")}
-                  className={`${activeTab === "mytrip" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-900"} px-1 pt-1 text-sm font-medium h-16`}
-                >
-                  내 여행 보관함
-                </button>
-              </div>
-            </div>
+        <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
+          <span className="text-2xl font-bold text-blue-600 cursor-pointer" onClick={() => setActiveTab("home")}>✈️ TripGen</span>
+          <div className="flex gap-6">
+            <button onClick={() => setActiveTab("home")} className={activeTab === "home" ? "text-blue-600 font-bold" : "text-gray-500"}>일정 생성</button>
+            {user && <button onClick={() => setActiveTab("mytrip")} className={activeTab === "mytrip" ? "text-blue-600 font-bold" : "text-gray-500"}>내 여행</button>}
           </div>
+          {user ? <button onClick={() => supabase.auth.signOut()} className="text-sm text-red-500">로그아웃</button> : <button onClick={() => setActiveTab("login")} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">로그인</button>}
         </div>
       </nav>
 
-      {/* 2. 메인 콘텐츠 영역 */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        
-        {/* 탭 1: 일정 생성 화면 */}
+        {activeTab === "login" && !user && (
+          <div className="max-w-sm mx-auto bg-white p-8 rounded-2xl shadow text-center">
+            <h2 className="text-xl font-bold mb-4">{isLoginMode ? "로그인" : "회원가입"}</h2>
+            <form onSubmit={handleAuth} className="space-y-3">
+              <input type="email" placeholder="이메일" className="w-full border p-2 rounded" value={email} onChange={e=>setEmail(e.target.value)} required />
+              <input type="password" placeholder="비밀번호" className="w-full border p-2 rounded" value={password} onChange={e=>setPassword(e.target.value)} required />
+              <button className="w-full bg-blue-600 text-white p-2 rounded font-bold">{isLoginMode ? "로그인" : "가입하기"}</button>
+            </form>
+            <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-sm text-gray-500 mt-4 underline">
+              {isLoginMode ? "회원가입으로 전환" : "로그인으로 전환"}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "mytrip" && (
+          <div className="grid gap-4">
+            <h2 className="text-2xl font-bold">🧳 내 여행 보관함</h2>
+            {myTrips.map(trip => (
+              <div key={trip.id} className="bg-white p-5 rounded-xl shadow hover:bg-gray-50 cursor-pointer" onClick={() => { setResult(trip); setActiveTab("home"); }}>
+                <h3 className="font-bold">{trip.itinerary_data.trip_title}</h3>
+                <p className="text-sm text-gray-500">{trip.duration} | {trip.destination}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === "home" && (
           <>
-            {/* 입력 폼 */}
             {!result && (
-              <div className="bg-white rounded-2xl shadow-lg p-8 mb-10 animate-fade-in-up">
-                <h2 className="text-xl font-bold mb-6 text-gray-800">여행 정보를 입력해주세요</h2>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* 여행지 */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">어디로 떠나시나요?</label>
-                    <input name="destination" placeholder="예: 파리, 도쿄" className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" onChange={handleChange} required />
+              <div className="bg-white p-8 rounded-2xl shadow-lg">
+                <h2 className="text-xl font-bold mb-6">새로운 여행을 떠나볼까요?</h2>
+                <form onSubmit={handleGenerate} className="space-y-4">
+                  <input placeholder="여행지 (예: 후쿠오카)" className="w-full border p-3 rounded-xl" onChange={e=>setFormData({...formData, destination: e.target.value})} required />
+                  <div className="flex gap-4">
+                    <input type="date" className="w-full border p-3 rounded-xl" onChange={e=>setFormData({...formData, startDate: e.target.value})} required />
+                    <input type="date" className="w-full border p-3 rounded-xl" onChange={e=>setFormData({...formData, endDate: e.target.value})} required />
                   </div>
-
-                  {/* 날짜 선택 (Date Picker) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">가는 날</label>
-                      <input type="date" name="startDate" className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" onChange={handleChange} required />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">오는 날</label>
-                      <input type="date" name="endDate" className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" onChange={handleChange} required />
-                    </div>
+                  <div className="flex gap-4">
+                    <input placeholder="스타일 (예: 먹방)" className="w-full border p-3 rounded-xl" onChange={e=>setFormData({...formData, style: e.target.value})} />
+                    <input placeholder="동행 (예: 가족)" className="w-full border p-3 rounded-xl" onChange={e=>setFormData({...formData, companions: e.target.value})} />
                   </div>
-
-                  {/* 스타일 및 동행 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">스타일</label>
-                      <input name="style" placeholder="예: 휴양, 박물관" className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" onChange={handleChange} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">동행</label>
-                      <input name="companions" placeholder="예: 부모님, 혼자" className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" onChange={handleChange} />
-                    </div>
-                  </div>
-                  
-                  <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition shadow-lg disabled:bg-gray-400">
-                    {loading ? "📅 날짜에 맞춰 일정을 짜고 있어요..." : "🚀 여행 일정 생성하기"}
+                  <button disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg shadow-md hover:bg-blue-700 transition">
+                    {loading ? "🚗 경로 계산 및 일정 최적화 중..." : "🚀 검증된 일정 생성하기"}
                   </button>
                 </form>
               </div>
             )}
 
-            {/* 결과 화면 (일별 이동 기능 포함) */}
             {result && result.itinerary_data && (
-              <div className="animate-fade-in-up">
-                {/* 제목 및 다시하기 버튼 */}
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">{result.itinerary_data.trip_title}</h2>
-                  <button onClick={() => setResult(null)} className="text-sm text-gray-500 underline hover:text-blue-600">
-                    새 일정 만들기
-                  </button>
+              <div className="animate-fade-in">
+                <div className="flex justify-between items-end mb-6">
+                  <h2 className="text-3xl font-bold">{result.itinerary_data.trip_title}</h2>
+                  <button onClick={() => setResult(null)} className="text-blue-600 font-bold">새로 만들기</button>
                 </div>
 
-                {/* Day Navigation Control */}
-                <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm mb-6">
-                  <button 
-                    onClick={handlePrevDay} 
-                    disabled={currentDayIndex === 0}
-                    className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed font-bold"
-                  >
-                    ← 이전 날
-                  </button>
-
+                {/* 날짜 컨트롤 */}
+                <div className="flex justify-between bg-white p-4 rounded-xl shadow-sm mb-6 items-center">
+                  <button onClick={() => setCurrentDayIndex(Math.max(0, currentDayIndex - 1))} disabled={currentDayIndex===0} className="px-4 py-2 bg-gray-100 rounded-lg disabled:opacity-50">←</button>
                   <div className="text-center">
-                    <div className="text-lg font-extrabold text-blue-600">
-                      Day {result.itinerary_data.itinerary[currentDayIndex].day}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {result.itinerary_data.itinerary[currentDayIndex].date || "날짜 정보 없음"}
-                    </div>
+                    <div className="font-bold text-blue-600 text-xl">Day {result.itinerary_data.itinerary[currentDayIndex].day}</div>
+                    <div className="text-sm text-gray-500">{result.itinerary_data.itinerary[currentDayIndex].date}</div>
                   </div>
-
-                  <button 
-                    onClick={handleNextDay} 
-                    disabled={currentDayIndex === result.itinerary_data.itinerary.length - 1}
-                    className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed font-bold"
-                  >
-                    다음 날 →
-                  </button>
+                  <button onClick={() => setCurrentDayIndex(Math.min(result.itinerary_data.itinerary.length-1, currentDayIndex + 1))} disabled={currentDayIndex===result.itinerary_data.itinerary.length-1} className="px-4 py-2 bg-gray-100 rounded-lg disabled:opacity-50">→</button>
                 </div>
 
-                {/* 현재 선택된 날짜의 일정 리스트 */}
-                <div className="space-y-6">
+                {/* 🗺️ 지도 영역 */}
+                <div className="w-full h-80 bg-gray-200 rounded-2xl overflow-hidden shadow-inner mb-8 border border-gray-300">
+                  {getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
+                    <iframe width="100%" height="100%" style={{border:0}} loading="lazy" allowFullScreen
+                      src={getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities)}>
+                    </iframe>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">경로를 표시할 장소 정보가 부족합니다.</div>
+                  )}
+                </div>
+
+                {/* 📋 일정 리스트 (이동 정보 포함) */}
+                <div className="space-y-0 pb-20 relative border-l-2 border-gray-200 ml-4 md:ml-6">
                   {result.itinerary_data.itinerary[currentDayIndex].activities.map((act, idx) => (
-                    <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition">
-                      {/* 이미지 */}
-                      {act.photoUrl ? (
-                        <div className="md:w-40 h-40 md:h-auto relative shrink-0">
-                          <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover" />
-                          {act.rating && (
-                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                              ⭐ {act.rating}
-                            </div>
-                          )}
+                    <div key={idx} className="mb-8 ml-6 relative">
+                      {/* 타임라인 점 */}
+                      <div className="absolute -left-[33px] bg-blue-600 w-4 h-4 rounded-full border-4 border-white shadow-sm"></div>
+                      
+                      {/* ⬇️ 이동 정보 카드 (이 장소로 오기까지 걸린 시간) */}
+                      {act.travel_info && (
+                        <div className="mb-4 bg-blue-50 p-3 rounded-lg inline-block border border-blue-100 shadow-sm">
+                          <span className="text-blue-800 font-bold text-sm">⬇️ {act.travel_info.duration} 소요</span>
+                          <span className="text-blue-600 text-xs ml-2">({act.travel_info.distance})</span>
                         </div>
-                      ) : (
-                         <div className="md:w-40 h-40 bg-gray-100 flex items-center justify-center text-3xl shrink-0">📍</div>
                       )}
 
-                      {/* 내용 */}
-                      <div className="p-5 flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                            {act.time}
-                          </span>
-                          <span className="text-xs text-gray-400 border px-2 py-0.5 rounded">{act.type}</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{act.place_name}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{act.activity_description}</p>
-                        
-                        {act.googleMapsUri && act.googleMapsUri !== "#" && (
-                          <a href={act.googleMapsUri} target="_blank" rel="noreferrer" className="text-blue-500 text-sm hover:underline">
-                            구글 지도 보기
-                          </a>
+                      {/* 장소 카드 */}
+                      <div className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition flex flex-col sm:flex-row gap-4">
+                        {act.photoUrl ? (
+                          <img src={act.photoUrl} className="w-full sm:w-32 h-32 object-cover rounded-lg bg-gray-100" alt={act.place_name} />
+                        ) : (
+                          <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">📍</div>
                         )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-bold">{act.time}</span>
+                            <span className="text-xs text-gray-500 border px-1 rounded">{act.type}</span>
+                            {act.rating && <span className="text-xs text-yellow-600 font-bold">⭐ {act.rating}</span>}
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-900">{act.place_name}</h3>
+                          <p className="text-sm text-gray-600 mt-1 leading-relaxed">{act.activity_description}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-
               </div>
             )}
           </>
         )}
-
-        {/* 탭 2: 내 여행 보관함 (UI만 구현) */}
-        {activeTab === "mytrip" && (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">🧳</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">내 여행 보관함</h2>
-            <p className="text-gray-500">저장된 여행 일정을 이곳에서 확인할 수 있습니다.</p>
-            <p className="text-gray-400 text-sm mt-2">(DB 연동 기능 개발 중...)</p>
-          </div>
-        )}
-
       </main>
     </div>
   );
