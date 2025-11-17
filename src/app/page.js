@@ -1,18 +1,16 @@
-// src/app/page.js
+// src/app/page.js (v2.0 뱃지 제거 버전)
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 
-// 1. 설정 로드
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-// 본인의 Render 주소 확인 필수
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
 
 export default function Home() {
@@ -27,7 +25,6 @@ export default function Home() {
   
   const router = useRouter();
 
-  // 초기화
   useEffect(() => {
     const checkUser = async () => {
       setIsUserLoading(true);
@@ -43,7 +40,6 @@ export default function Home() {
     checkUser();
   }, []);
 
-  // 내 여행 로드
   useEffect(() => {
     if (activeTab === "mytrip" && user) {
       axios.get(`${API_BASE_URL}/my-trips?user_id=${user.id}`)
@@ -55,7 +51,7 @@ export default function Home() {
   const handleGenerate = async (e) => {
     e.preventDefault();
 
-    // 🔒 [보안] 비로그인 유저 차단
+    // 🔒 비로그인 유저 차단
     if (!user) {
       if (confirm("로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?")) {
         router.push('/login');
@@ -96,12 +92,9 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
-          
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2" onClick={() => setActiveTab("home")}>
-              {/* 빨간색 v2.0 배지 제거됨 */}
-              <span className="text-2xl font-extrabold text-blue-600 cursor-pointer">✈️ TripGen</span>
-            </div>
+            {/* 뱃지 제거됨 */}
+            <span className="text-2xl font-extrabold text-blue-600 cursor-pointer" onClick={() => setActiveTab("home")}>✈️ TripGen</span>
             <div className="hidden md:flex gap-6">
               <button onClick={() => setActiveTab("home")} className={`font-medium ${activeTab==="home" ? "text-blue-600" : "text-gray-500"}`}>일정 생성</button>
               {user && <button onClick={() => setActiveTab("mytrip")} className={`font-medium ${activeTab==="mytrip" ? "text-blue-600" : "text-gray-500"}`}>내 여행 보관함</button>}
@@ -113,21 +106,13 @@ export default function Home() {
               <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
             ) : user ? (
               <>
-                {/* 관리자 버튼 (관리자일 때만 보임) */}
-                {/* 관리자 이메일은 .env에 설정된 값과 비교 */}
                 {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
-                  <button onClick={() => router.push('/admin')} className="text-xs bg-gray-800 text-white px-3 py-1.5 rounded font-bold">
-                    관리자
-                  </button>
+                  <button onClick={() => router.push('/admin')} className="text-xs bg-gray-800 text-white px-3 py-1.5 rounded font-bold">관리자</button>
                 )}
-                <button onClick={() => router.push('/mypage')} className="text-sm font-bold text-gray-600 hover:text-blue-600 border px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-blue-50 transition">
-                  마이페이지
-                </button>
+                <button onClick={() => router.push('/mypage')} className="text-sm font-bold text-gray-600 hover:text-blue-600 border px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-blue-50 transition">마이페이지</button>
               </>
             ) : (
-              <button onClick={() => router.push('/login')} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition">
-                로그인 / 가입
-              </button>
+              <button onClick={() => router.push('/login')} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition">로그인 / 가입</button>
             )}
           </div>
         </div>
