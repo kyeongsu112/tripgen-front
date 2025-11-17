@@ -40,7 +40,7 @@ export default function Home() {
     setCurrentDayIndex(0); // 결과 나오면 1일차부터 보여주기
 
     try {
-      const response = await axios.post("http://localhost:8080/api/generate-trip", formData);
+      const response = await axios.post("https://tripgen-server.onrender.com/api/generate-trip", formData);
       if (response.data.success) {
         setResult(response.data.data);
       }
