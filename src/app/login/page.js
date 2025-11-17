@@ -3,7 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 
-// 1. Supabase 설정
+// Supabase 클라이언트 설정
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -12,21 +12,24 @@ const supabase = createClient(
 export default function LoginPage() {
   const router = useRouter();
 
-  // 소셜 로그인 핸들러 (구글 + 카카오 공용)
+  // --- 소셜 로그인 핸들러 ---
   const handleSocialLogin = async (provider) => {
     
-    // [핵심 수정] provider가 'kakao'일 때만 'profile' 스코프를 명시적으로 요청하여,
-    // 권한 없는 'account_email' 요청을 차단합니다.
+    // [핵심 수정] 카카오에게 요청할 권한 범위를 명시적으로 지정
+    // (account_email과 충돌하는 'profile' 범위를 제거)
+    const kakaoScopes = 'profile_nickname profile_image'; // 요청할 두 항목
+
     const options = {
-      redirectTo: window.location.origin, // 로그인 후 돌아올 주소
-      // 카카오는 'profile'만 요청하여 KOE205 오류를 방지합니다.
-      scopes: provider === 'kakao' ? 'profile' : undefined 
+      redirectTo: window.location.origin,
+      // provider가 카카오일 때만 명시적 범위 사용, 구글은 기본 범위 사용
+      scopes: provider === 'kakao' ? kakaoScopes : undefined 
     };
 
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: provider, // 'google' or 'kakao'
+      provider: provider,
       options: options,
     });
+    
     if (error) alert("로그인 오류: " + error.message);
   };
 
