@@ -1,16 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation"; // ✨ useRouter 추가
 
 // 배포 환경에 맞게 주소 설정
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
-// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트용
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default function SharedTripPage() {
   const params = useParams();
+  const router = useRouter(); // ✨ 라우터 초기화
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,13 +31,10 @@ export default function SharedTripPage() {
     }
   }, [params.id]);
 
-  // ✨ [핵심] 메인 페이지와 동일한 지도 URL 생성 함수 추가
   const getMapUrl = (activities) => {
     if (!activities) return null;
-    // 이동이나 숙소 제외하고 유효한 장소만 필터링
     const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
     
-    // 장소가 2개 미만이면 경로 표시 불가
     if (validPlaces.length < 2) return null;
 
     const formatPlace = (p) => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name);
@@ -60,14 +57,26 @@ export default function SharedTripPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-blue-100">
-      {/* 헤더 */}
+      {/* ✨ 헤더 수정: 로고 클릭 & 버튼 추가 */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          {/* 1. 로고 클릭 시 메인으로 이동 */}
+          <div 
+            className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition" 
+            onClick={() => router.push('/')}
+          >
             <span className="text-2xl">✈️</span>
             <span className="text-xl font-extrabold tracking-tight text-slate-900">TripGen</span>
             <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold ml-2">Shared View</span>
           </div>
+
+          {/* 2. 메인으로 가는 '나도 만들기' 버튼 추가 */}
+          <button 
+            onClick={() => router.push('/')}
+            className="text-sm font-bold text-white bg-blue-600 px-4 py-2 rounded-full hover:bg-blue-700 transition shadow-md"
+          >
+            나도 일정 만들기 🚀
+          </button>
         </div>
       </nav>
 
@@ -130,7 +139,6 @@ export default function SharedTripPage() {
 
                     {/* 장소 카드 */}
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition duration-300 flex flex-col sm:flex-row gap-5">
-                       {/* 이미지 영역 */}
                        <div className="w-full sm:w-32 h-32 shrink-0 bg-slate-100 rounded-xl overflow-hidden relative">
                          {act.photoUrl ? (
                            <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover" />
@@ -152,7 +160,6 @@ export default function SharedTripPage() {
                          <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{act.place_name}</h3>
                          <p className="text-sm text-slate-500 leading-relaxed mb-3">{act.activity_description}</p>
                          
-                         {/* ✨ [핵심] 지도 보기 & 예약 링크 버튼 추가 */}
                          <div className="flex flex-wrap gap-2 mt-2">
                            {act.googleMapsUri && (
                              <a href={act.googleMapsUri} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
