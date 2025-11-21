@@ -15,7 +15,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
 
 // 로컬 테스트용 주소 👇
-//const API_BASE_URL = "http://localhost:8080/api";
+// const API_BASE_URL = "http://localhost:8080/api";
 
 export default function Home() {
   const [user, setUser] = useState(null);
