@@ -268,7 +268,7 @@ export default function Home() {
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
                         <input 
-                          placeholder="도시나 지역 검색 (예: 도쿄)" 
+                          placeholder="도시나 지역 검색" 
                           className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all" 
                           value={formData.destination}
                           onChange={handleDestinationChange} // ✨ 여기서 이벤트 연결됨
@@ -293,8 +293,8 @@ export default function Home() {
 
                       {/* ... 날짜 입력 ... */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크인</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크아웃</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">출발일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">마지막일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
                       </div>
                     </div>
 
