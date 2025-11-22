@@ -10,9 +10,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// 배포 주소 (Render)
+// 로컬 테스트 중이라면 반드시 localhost 주소 사용
+// const API_BASE_URL = "http://localhost:8080/api"; 
+// 배포 시에는 아래 주소 사용
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
-// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트용
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -26,7 +27,8 @@ export default function Home() {
     destination: "", 
     startDate: "", 
     endDate: "", 
-    // style, companions 제거됨 -> otherRequirements로 통합
+    style: "", 
+    companions: "",
     arrivalTime: "14:00",
     departureTime: "12:00",
     otherRequirements: "" 
@@ -39,8 +41,8 @@ export default function Home() {
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [modifying, setModifying] = useState(false); // 수정 로딩 상태
-  const [modificationPrompt, setModificationPrompt] = useState(""); // 수정 요청 텍스트
+  const [modifying, setModifying] = useState(false);
+  const [modificationPrompt, setModificationPrompt] = useState("");
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   
   const router = useRouter();
@@ -50,8 +52,7 @@ export default function Home() {
       setIsUserLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (session) setUser(session.user);
-      
-      const { data: { subscription } } = supabase.auth.onAuthStacteChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
       });
       setIsUserLoading(false);
@@ -68,29 +69,40 @@ export default function Home() {
     }
   }, [activeTab, user]);
 
-  // ✨ 여행지 입력 핸들러 (자동완성 API 호출)
+  // ✨ [핵심] 여행지 입력 핸들러 (자동완성 API 호출)
   const handleDestinationChange = (e) => {
     const value = e.target.value;
     setFormData({ ...formData, destination: value });
 
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-
-    if (value.length > 1) {
-      debounceTimeout.current = setTimeout(async () => {
-        try {
-          const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
-            params: { query: value }
-          });
-          setSuggestions(res.data.predictions || []);
-          setShowSuggestions(true);
-        } catch (err) {
-          console.error("Autocomplete Error", err);
-        }
-      }, 300);
-    } else {
+    // 입력값이 없으면 추천 목록 숨김
+    if (value.length < 1) {
       setSuggestions([]);
       setShowSuggestions(false);
+      return;
     }
+
+    // 디바운싱 (0.3초 대기 후 요청)
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        console.log("검색 요청:", value); // 디버깅용 로그
+        const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
+          params: { query: value }
+        });
+        console.log("검색 결과:", res.data.predictions); // 디버깅용 로그
+        
+        if (res.data.predictions && res.data.predictions.length > 0) {
+          setSuggestions(res.data.predictions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (err) {
+        console.error("Autocomplete Error", err);
+      }
+    }, 300);
   };
 
   const selectSuggestion = (placeName) => {
@@ -99,6 +111,7 @@ export default function Home() {
     setShowSuggestions(false);
   };
 
+  // ... (나머지 코드는 기존과 동일)
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!user) {
@@ -111,7 +124,6 @@ export default function Home() {
     setShowSuggestions(false);
 
     try {
-      // style, companions 없이 전송해도 백엔드에서 알아서 처리함 (이전 server.js 수정 덕분)
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
       setResult(res.data.data);
     } catch (err) {
@@ -121,7 +133,6 @@ export default function Home() {
     }
   };
 
-  // ✨ AI 수정 요청 핸들러
   const handleModify = async () => {
     if (!modificationPrompt.trim()) return;
     setModifying(true);
@@ -239,37 +250,40 @@ export default function Home() {
           </div>
         )}
 
-        {/* 탭 2: 홈 (입력 및 결과) */}
+        {/* 탭 2: 홈 */}
         {activeTab === "home" && (
           <>
             {!result && (
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 <div className="text-center mb-10">
-                  <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-                    어디로 떠나실 건가요?
-                  </h2>
+                  <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">어디로 떠나실 건가요?</h2>
                   <p className="text-lg text-slate-500">완벽한 여행을 위한 맞춤형 일정을 제안해 드립니다.</p>
                 </div>
                 
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_6px_30px_rgba(0,0,0,0.08)] border border-slate-100 relative">
                   <form onSubmit={handleGenerate} className="space-y-8">
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       
-                      {/* ✨ 여행지 자동완성 UI */}
+                      {/* ✨ 여행지 입력 + 자동완성 UI (수정됨) */}
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
                         <input 
-                          placeholder="도시나 지역 검색" 
+                          placeholder="도시나 지역 검색 (예: 도쿄)" 
                           className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all" 
                           value={formData.destination}
-                          onChange={handleDestinationChange}
+                          onChange={handleDestinationChange} // ✨ 여기서 이벤트 연결됨
                           required 
                         />
+                        
+                        {/* ✨ 자동완성 드롭다운 */}
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {suggestions.map((item, idx) => (
-                              <div key={idx} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" onClick={() => selectSuggestion(item.description)}>
+                              <div 
+                                key={idx} 
+                                className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" 
+                                onClick={() => selectSuggestion(item.description)}
+                              >
                                 <span>📍</span>{item.description}
                               </div>
                             ))}
@@ -277,26 +291,21 @@ export default function Home() {
                         )}
                       </div>
 
+                      {/* ... 날짜 입력 ... */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">출발일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">마지막일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크인</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크아웃</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
                       </div>
                     </div>
 
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* ✨ 스타일/동행 제거 -> 시간 입력만 남김 */}
                             <div className="space-y-1"><label className="text-xs font-bold text-slate-500">도착 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-white border border-slate-200 p-2.5 rounded-lg text-sm font-semibold outline-none focus:border-slate-900" onChange={e=>setFormData({...formData, arrivalTime: e.target.value})} /></div>
                             <div className="space-y-1"><label className="text-xs font-bold text-slate-500">출발 시간</label><input type="time" value={formData.departureTime} className="w-full bg-white border border-slate-200 p-2.5 rounded-lg text-sm font-semibold outline-none focus:border-slate-900" onChange={e=>setFormData({...formData, departureTime: e.target.value})} /></div>
                         </div>
-                        {/* ✨ 기타 요구사항 입력 (스타일/동행 대체) */}
                         <div className="mt-6 space-y-1">
-                           <label className="text-xs font-bold text-slate-500">여행 스타일 및 기타 요구사항 (선택)</label>
-                           <textarea 
-                             placeholder="예: 친구와 함께하는 힐링 여행, 해산물은 못 먹어요, 박물관 위주로 짜주세요." 
-                             className="w-full bg-white border border-slate-200 p-3 rounded-lg text-sm font-medium outline-none focus:border-slate-900 h-24 resize-none"
-                             onChange={e=>setFormData({...formData, otherRequirements: e.target.value})}
-                           />
+                           <label className="text-xs font-bold text-slate-500">기타 요구사항 (선택)</label>
+                           <textarea placeholder="예: 해산물은 못 먹어요, 박물관 위주로 짜주세요." className="w-full bg-white border border-slate-200 p-3 rounded-lg text-sm font-medium outline-none focus:border-slate-900 h-24 resize-none" onChange={e=>setFormData({...formData, otherRequirements: e.target.value})} />
                         </div>
                     </div>
 
@@ -310,6 +319,7 @@ export default function Home() {
               </div>
             )}
 
+            {/* 결과 화면 (기존과 동일) */}
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
                 <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
@@ -321,26 +331,14 @@ export default function Home() {
                       <span className="flex items-center gap-1"><span className="text-rose-500">📍</span> {result.destination}</span>
                     </div>
                   </div>
-                  <button onClick={() => setResult(null)} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-semibold transition">
-                    새로운 검색
-                  </button>
+                  <button onClick={() => setResult(null)} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-semibold transition">새로운 검색</button>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-200px)] min-h-[600px]">
                   <div className="lg:w-[45%] flex flex-col h-full">
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide">
                       {result.itinerary_data.itinerary.map((day, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setCurrentDayIndex(idx)}
-                          className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                            currentDayIndex === idx 
-                            ? "bg-black text-white shadow-md" 
-                            : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
-                          }`}
-                        >
-                          {day.day}일차
-                        </button>
+                        <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${currentDayIndex === idx ? "bg-black text-white shadow-md" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>{day.day}일차</button>
                       ))}
                     </div>
 
@@ -374,7 +372,6 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* ✨ AI 수정 채팅바 */}
                     <div className="mt-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-lg sticky bottom-0 z-20">
                       <label className="text-xs font-bold text-slate-500 mb-2 block flex items-center gap-1"><span>🤖</span> AI에게 일정 수정을 요청해보세요</label>
                       <div className="flex gap-2">
