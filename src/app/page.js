@@ -31,14 +31,16 @@ export default function Home() {
     otherRequirements: "" 
   });
 
+  // ✨ 자동완성 및 유효성 검사 State
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isPlaceSelected, setIsPlaceSelected] = useState(false); // ✨ 장소 선택 여부 체크
   const debounceTimeout = useRef(null);
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [modifying, setModifying] = useState(false);
-  const [modificationPrompt, setModificationPrompt] = useState("");
+  const [modifying, setModifying] = useState(false); 
+  const [modificationPrompt, setModificationPrompt] = useState(""); 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   
   const router = useRouter();
@@ -65,9 +67,13 @@ export default function Home() {
     }
   }, [activeTab, user]);
 
+  // ✨ 여행지 입력 핸들러
   const handleDestinationChange = (e) => {
     const value = e.target.value;
     setFormData({ ...formData, destination: value });
+    
+    // 🚨 사용자가 타이핑을 시작하면 "선택됨" 상태를 해제 (목록에서 다시 골라야 함)
+    setIsPlaceSelected(false); 
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
@@ -89,10 +95,12 @@ export default function Home() {
     }
   };
 
+  // ✨ 자동완성 목록 클릭 핸들러
   const selectSuggestion = (placeName) => {
     setFormData({ ...formData, destination: placeName });
     setSuggestions([]);
     setShowSuggestions(false);
+    setIsPlaceSelected(true); // ✅ 목록에서 선택했으므로 유효함!
   };
 
   const handleGenerate = async (e) => {
@@ -103,6 +111,20 @@ export default function Home() {
       }
       return;
     }
+
+    // ✨ 유효성 검사: 목록에서 선택하지 않았으면 막음
+    if (!isPlaceSelected) {
+      alert("여행지를 검색 후 목록에서 선택해주세요.");
+      return;
+    }
+
+    if (formData.startDate && formData.endDate) {
+      if (new Date(formData.startDate) > new Date(formData.endDate)) {
+        alert("출발일은 도착일보다 늦을 수 없습니다.");
+        return;
+      }
+    }
+
     setLoading(true); setResult(null); setCurrentDayIndex(0);
     setShowSuggestions(false);
 
@@ -116,26 +138,21 @@ export default function Home() {
     }
   };
 
-  // ✨ [수정된 부분] AI 수정 요청 시 trip_id 전송
   const handleModify = async () => {
     if (!modificationPrompt.trim()) return;
     setModifying(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/modify-trip`, {
-        trip_id: result.id, // ✨ 중요: DB 업데이트를 위해 ID 전달
+        trip_id: result.id,
         currentItinerary: result.itinerary_data,
         userRequest: modificationPrompt,
         destination: result.destination,
         user_id: user?.id
       });
       
-      // 수정된 데이터로 화면 업데이트 (DB에도 이미 저장됨)
-      setResult({
-        ...result,
-        itinerary_data: res.data.data
-      });
+      setResult({ ...result, itinerary_data: res.data.data });
       setModificationPrompt("");
-      alert("일정이 수정되었습니다! ✨");
+      alert("일정이 수정되었습니다! (자동 저장됨) ✨");
     } catch (err) {
       console.error(err);
       alert("수정 중 오류가 발생했습니다.");
@@ -156,7 +173,7 @@ export default function Home() {
   };
 
   const handleShare = (e, tripId) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     const shareUrl = `${window.location.origin}/share/${tripId}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       alert("공유 링크가 복사되었습니다! 🔗");
@@ -239,7 +256,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 탭 2: 홈 (입력 및 결과) */}
+        {/* 탭 2: 홈 */}
         {activeTab === "home" && (
           <>
             {!result && (
@@ -252,21 +269,26 @@ export default function Home() {
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_6px_30px_rgba(0,0,0,0.08)] border border-slate-100 relative">
                   <form onSubmit={handleGenerate} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      
+                      {/* ✨ 여행지 입력 (검색 후 선택 필수) */}
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
                         <input 
-                          placeholder="도시나 지역 검색" 
-                          className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all" 
+                          placeholder="도시나 지역 검색 (예: 도쿄)" 
+                          className={`w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-none ring-1 ring-transparent focus:ring-slate-900'}`} 
                           value={formData.destination}
                           onChange={handleDestinationChange}
                           required 
                         />
+                        {/* 경고 메시지 (선택 안 했을 때) */}
+                        {!isPlaceSelected && formData.destination.length > 0 && (
+                          <p className="text-xs text-red-500 mt-1 ml-1">⚠️ 목록에서 여행지를 선택해주세요.</p>
+                        )}
+
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {suggestions.map((item, idx) => (
-                              <div key={idx} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" onClick={() => selectSuggestion(item.description)}>
-                                <span>📍</span>{item.description}
-                              </div>
+                              <div key={idx} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" onClick={() => selectSuggestion(item.description)}><span>📍</span>{item.description}</div>
                             ))}
                           </div>
                         )}
@@ -290,7 +312,13 @@ export default function Home() {
                     </div>
 
                     <div className="pt-2">
-                      <button disabled={loading} className="w-full bg-rose-500 hover:bg-rose-600 text-white p-4 rounded-xl font-bold text-lg shadow-lg shadow-rose-200 transition-all duration-300 transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      <button 
+                        disabled={loading || !isPlaceSelected} 
+                        className={`w-full p-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 transform flex items-center justify-center gap-2
+                          ${loading || !isPlaceSelected 
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" 
+                            : "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 active:scale-[0.99]"}`}
+                      >
                         {loading ? <><span className="animate-spin">⚪</span><span>여행 계획을 세우는 중...</span></> : <><span className="text-xl">✨</span><span>일정 생성하기</span></>}
                       </button>
                     </div>
@@ -299,7 +327,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* 결과 화면 */}
+            {/* 결과 및 수정 화면 (기존과 동일) */}
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
                 <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
@@ -311,8 +339,6 @@ export default function Home() {
                       <span className="flex items-center gap-1"><span className="text-rose-500">📍</span> {result.destination}</span>
                     </div>
                   </div>
-                  
-                  {/* ✨ 공유 & 새 검색 버튼 */}
                   <div className="flex items-center gap-3">
                     <button onClick={(e) => handleShare(e, result.id)} className="px-5 py-2.5 rounded-lg bg-black text-white hover:bg-slate-800 text-sm font-bold transition shadow-md flex items-center gap-2"><span>🔗</span> 공유하기</button>
                     <button onClick={() => setResult(null)} className="px-5 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-bold transition">새로운 검색</button>
