@@ -317,7 +317,7 @@ function HomeContent() {
       )}
 
       {/* 헤더 */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 h-16 md:h-20 flex items-center transition-colors">
+      <nav className="sticky top-0 z-50 bg-navbar/80 backdrop-blur-md border-b border-navbar-border h-16 md:h-20 flex items-center transition-colors">
         <div className="max-w-7xl mx-auto px-4 md:px-6 w-full flex justify-between items-center">
           <div className="flex items-center gap-4 md:gap-8">
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleLogoClick}>
@@ -328,14 +328,14 @@ function HomeContent() {
             {/* 데스크톱 메뉴 */}
             <div className="hidden md:flex items-center gap-4">
                 {/* 그룹 1: 일정 */}
-                <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                    <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="home" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>일정 생성</button>
-                    <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인이 필요합니다.'); }} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="mytrip" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>보관함</button>
+                <div className="flex gap-1 bg-background/60 p-1.5 rounded-full border border-border">
+                    <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="home" ? "border-b-2 border-primary text-primary" : "text-foreground/50 hover:text-foreground"}`}>일정 생성</button>
+                    <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인이 필요합니다.'); }} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="mytrip" ? "border-b-2 border-primary text-primary" : "text-foreground/50 hover:text-foreground"}`}>보관함</button>
                 </div>
                 {/* 그룹 2: 커뮤니티 */}
-                <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                    <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">공유게시판</button>
-                    <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">건의함</button>
+                <div className="flex gap-1 bg-background/60 p-1.5 rounded-full border border-border">
+                    <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-foreground/60 hover:text-foreground hover:bg-card transition-all">공유게시판</button>
+                    <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-foreground/60 hover:text-foreground hover:bg-card transition-all">건의함</button>
                 </div>
             </div>
           </div>
@@ -352,17 +352,17 @@ function HomeContent() {
 
             {/* 모바일 메뉴 */}
             <div className="flex md:hidden gap-1 mr-1">
-               <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="home" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>생성</button>
-               <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인 필요'); }} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="mytrip" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>보관</button>
+               <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
+               <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인 필요'); }} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
             </div>
 
             {isUserLoading ? <div className="w-24 h-9 bg-slate-100 rounded-full animate-pulse"></div> : user ? (
               <div className="flex items-center gap-2 md:gap-3">
-                <span className="hidden lg:block text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">{usageInfo.tier === 'admin' ? '∞' : `남은 횟수: ${Math.max(0, (usageInfo.tier==='pro'?30:3) - usageInfo.usage_count)}`}</span>
-                {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && <button onClick={() => router.push('/admin')} className="text-xs font-bold text-slate-500 hover:text-black dark:text-slate-400 dark:hover:text-white">ADMIN</button>}
-                <button onClick={() => router.push('/mypage')} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-2 pr-1 py-1 hover:shadow-md transition duration-200"><span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1 hidden sm:inline">MY</span><div className="w-7 h-7 bg-slate-800 dark:bg-slate-600 rounded-full text-white flex items-center justify-center text-[10px]">👤</div></button>
+                <span className="hidden lg:block text-xs font-bold text-foreground/60 bg-background px-3 py-1.5 rounded-full border border-border">{usageInfo.tier === 'admin' ? '∞' : `남은 횟수: ${Math.max(0, (usageInfo.tier==='pro'?30:3) - usageInfo.usage_count)}`}</span>
+                {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && <button onClick={() => router.push('/admin')} className="text-xs font-bold text-foreground/70 hover:text-foreground">ADMIN</button>}
+                <button onClick={() => router.push('/mypage')} className="flex items-center gap-2 bg-card border border-border rounded-full pl-2 pr-1 py-1 hover:shadow-md transition duration-200"><span className="text-xs font-bold text-foreground/80 ml-1 hidden sm:inline">MY</span><div className="w-7 h-7 bg-primary rounded-full text-white flex items-center justify-center text-[10px]">👤</div></button>
               </div>
-            ) : <button onClick={() => router.push('/login')} className="text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-rose-500 transition px-2">로그인</button>}
+            ) : <button onClick={() => router.push('/login')} className="text-sm font-bold text-foreground/80 hover:text-rose-500 transition px-2">로그인</button>}
           </div>
         </div>
       </nav>
@@ -571,7 +571,7 @@ function HomeContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>}>
       <HomeContent />
     </Suspense>
   );
