@@ -1,41 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* -----------------------------------------
-   1. 공통 CSS 변수 (라이트 모드 기본값)
------------------------------------------- */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1f2937; /* neutral-700 */
+
+  --primary: #fb7185; /* rose-400 */
+  --secondary: #fff1f2; /* rose-50 */
+  --border: #e5e7eb; /* neutral-200 */
 }
 
-/* -----------------------------------------
-   2. 다크 모드 (토글 기반)
-   <html class="dark"> 를 붙이면 다크모드 실행됨
------------------------------------------- */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0d1220; /* 남색+보라 혼합 (부드러운 다크톤) */
+  --foreground: #f3f4f6; /* neutral-100 */
+
+  --primary: #fda4af; /* rose-300 */
+  --secondary: #3f1d2e; /* rose-900 계열 (고급스러운 어두운 배경) */
+  --border: #4b5563; /* neutral-600 */
 }
 
-/* -----------------------------------------
-   3. Tailwind v4 스타일 통합 (@theme inline)
------------------------------------------- */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-/* -----------------------------------------
-   4. 실제 body 적용
------------------------------------------- */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
 }

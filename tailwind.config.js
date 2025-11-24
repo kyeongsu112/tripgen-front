@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class', // 다크모드 수동 제어
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,7 +9,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // globals.css의 변수와 연결
         background: "var(--background)",
         foreground: "var(--foreground)",
         primary: "var(--primary)",
