@@ -287,8 +287,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 transition-colors">
-      
+<div className="min-h-screen bg-background text-foreground font-sans transition-colors duration-300">      
       {/* 광고 모달 (다크모드 적용) */}
       {showAd && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in">

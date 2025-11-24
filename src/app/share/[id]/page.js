@@ -65,7 +65,7 @@ export default function SharedTripPage() {
     return `http://googleusercontent.com/maps.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>;
   if (error) return <div className="min-h-screen flex flex-col items-center justify-center text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900"><div className="text-4xl mb-2">⚠️</div><div className="font-bold">{error}</div></div>;
   if (!trip) return null;
 

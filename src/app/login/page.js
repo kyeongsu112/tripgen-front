@@ -85,7 +85,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="min-h-screen bg-background text-foreground dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
       
       {/* ✨ 헤더 (다크모드 적용) */}
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 h-16 md:h-20 flex items-center transition-colors">

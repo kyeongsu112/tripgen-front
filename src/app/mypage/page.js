@@ -182,7 +182,7 @@ export default function MyPage() {
     return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>;
 
   const tier = limitInfo?.tier || 'free';
   let maxLimit = 3;
