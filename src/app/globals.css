@@ -1,23 +1,113 @@
-:root {
-  --background: #ffffff;
-  --foreground: #1f2937; /* neutral-700 */
+/* ------------------------------------------------------
+   🌤️ LIGHT MODE (기본) - TripGen 감성 밝은 버전
+------------------------------------------------------- */
 
-  --primary: #fb7185; /* rose-400 */
-  --secondary: #fff1f2; /* rose-50 */
-  --border: #e5e7eb; /* neutral-200 */
+:root {
+  --background: #f7f9fc;        /* 부드러운 블루-그레이 */
+  --foreground: #1e293b;        /* 진한 네이비 계열 텍스트 */
+  --foreground-80: rgba(30, 41, 59, 0.8);
+  --foreground-70: rgba(30, 41, 59, 0.7);
+  --foreground-60: rgba(30, 41, 59, 0.6);
+  
+  --primary: #2563eb;           /* TripGen Blue */
+  --secondary: #e2e8f0;         /* 밝은 Slate 200 */
+  --card: #ffffff;              /* 카드 */
+  --border: #cbd5e1;            /* Slate 300 */
+  
+  --navbar: #ffffffcc;          /* 밝은 반투명 배경 */
+  --navbar-border: #e2e8f0;
 }
+
+/* ------------------------------------------------------
+   🌙 DARK MODE - 네이비 감성
+------------------------------------------------------- */
 
 .dark {
-  --background: #0d1220; /* 남색+보라 혼합 (부드러운 다크톤) */
-  --foreground: #f3f4f6; /* neutral-100 */
+  --background: #0c0f1d;        /* 거의 검은 네이비 */
+  --foreground: #f3f4f6;        /* neutral-100 */
+  --foreground-80: rgba(243, 244, 246, 0.8);
+  --foreground-70: rgba(243, 244, 246, 0.7);
+  --foreground-60: rgba(243, 244, 246, 0.6);
 
-  --primary: #fda4af; /* rose-300 */
-  --secondary: #3f1d2e; /* rose-900 계열 (고급스러운 어두운 배경) */
-  --border: #4b5563; /* neutral-600 */
+  --primary: #60a5fa;           /* 밝은 블루 400 */
+  --secondary: #1e293b;         /* 짙은 네이비 (버튼/배경) */
+  --card: #1a2234;              /* 차분한 네이비 박스 */
+  --border: #334155;            /* 어두운 라인 */
+
+  --navbar: #101528;            /* 상단 네이비 */
+  --navbar-border: #1e293b;
 }
+
+/* ------------------------------------------------------
+   공통 베이스
+------------------------------------------------------- */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ------------------------------------------------------
+   Tailwind 컬러 단일화 (배경/텍스트/테두리)
+------------------------------------------------------- */
+.bg-white,
+.dark .bg-white {
+  background-color: var(--card) !important;
+}
+
+.bg-gray-50,
+.bg-slate-50,
+.dark .bg-gray-50,
+.dark .bg-slate-50 {
+  background-color: var(--background) !important;
+}
+
+.bg-slate-100,
+.bg-slate-200,
+.dark .bg-slate-100,
+.dark .bg-slate-200 {
+  background-color: var(--secondary) !important;
+}
+
+.bg-slate-800,
+.bg-slate-900,
+.dark .bg-slate-800,
+.dark .bg-slate-900 {
+  background-color: var(--card) !important;
+}
+
+.border-slate-50,
+.border-slate-100,
+.border-slate-200,
+.border-slate-300,
+.dark .border-slate-50,
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 {
+  border-color: var(--border) !important;
+}
+
+.text-slate-900,
+.text-slate-800,
+.text-slate-700,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: var(--foreground) !important;
+}
+
+.text-slate-600,
+.dark .text-slate-600 {
+  color: var(--foreground-80) !important;
+}
+
+.text-slate-500,
+.dark .text-slate-500 {
+  color: var(--foreground-70) !important;
+}
+
+.text-slate-400,
+.dark .text-slate-400 {
+  color: var(--foreground-60) !important;
 }
