@@ -47,29 +47,32 @@ export default function BoardPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // ✨ 로그인 체크 제거: 누구나 작성 가능 (익명 허용)
+    // 로그인 여부 상관없이 작성 가능 (익명 허용)
     if (!content.trim()) return alert("내용을 입력해주세요.");
 
     try {
       await axios.post(`${API_BASE_URL}/board`, {
-        user_id: user?.id || null,    // 로그인 안 했으면 null
-        email: user?.email || null,   // 로그인 안 했으면 null
+        user_id: user?.id || null,    // 로그인했으면 ID, 아니면 null
+        email: user?.email || null,   // 로그인했으면 이메일, 아니면 null
         content: content
       });
       setContent("");
       fetchPosts(); // 목록 새로고침
-      alert("소중한 의견 감사합니다! (익명으로 등록됨) 💌");
+      alert("소중한 의견 감사합니다! 💌");
     } catch (err) {
       alert("작성 실패: " + err.message);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("관리자 권한으로 삭제하시겠습니까?")) return;
+    if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      // 삭제 요청 시 관리자 이메일을 함께 전송하여 백엔드에서 검증
+      // 삭제 요청 (백엔드에서 본인/관리자 여부 체크)
       await axios.delete(`${API_BASE_URL}/board/${id}`, {
-        data: { email: user?.email }
+        data: { 
+            user_id: user?.id,
+            email: user?.email 
+        }
       });
       fetchPosts();
       alert("삭제되었습니다.");
@@ -101,7 +104,10 @@ export default function BoardPage() {
       <main className="max-w-2xl mx-auto px-6 py-12">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-black text-slate-900 mb-2">📢 건의함</h1>
-          <p className="text-slate-500 font-medium">로그인 없이 자유롭게 의견을 남겨주세요.<br/>작성자는 익명으로 안전하게 보호됩니다.</p>
+          <p className="text-slate-500 font-medium">
+            로그인 없이 자유롭게 의견을 남겨주세요.<br/>
+            작성자는 익명으로 안전하게 보호됩니다.
+          </p>
         </div>
 
         {/* 입력 폼 */}
@@ -122,7 +128,7 @@ export default function BoardPage() {
                 : 'bg-black text-white hover:bg-slate-800 shadow-md'
               }`}
             >
-              익명으로 보내기 🚀
+              의견 보내기 🚀
             </button>
           </div>
         </div>
@@ -151,8 +157,16 @@ export default function BoardPage() {
                     <div>
                       <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
                         익명 사용자
-                        {/* 관리자가 쓴 글은 표시 (선택사항) */}
-                        {post.email === ADMIN_EMAIL && <span className="bg-rose-100 text-rose-600 text-[10px] px-1.5 py-0.5 rounded font-extrabold">ADMIN</span>}
+                        
+                        {/* ✨ [추가됨] 본인 글 표시 */}
+                        {user && user.id === post.user_id && (
+                           <span className="text-rose-500 text-xs font-extrabold">(나)</span>
+                        )}
+
+                        {/* 관리자 표시 */}
+                        {post.email === ADMIN_EMAIL && (
+                           <span className="bg-black text-white text-[10px] px-1.5 py-0.5 rounded font-bold">ADMIN</span>
+                        )}
                       </p>
                       <p className="text-[10px] font-bold text-slate-400">
                         {new Date(post.created_at).toLocaleDateString()} {new Date(post.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -160,8 +174,8 @@ export default function BoardPage() {
                     </div>
                   </div>
                   
-                  {/* ✨ 관리자일 때만 삭제 버튼 표시 */}
-                  {user && user.email === ADMIN_EMAIL && (
+                  {/* ✨ [삭제 버튼] 본인 글이거나 관리자일 때만 표시 */}
+                  {user && (user.id === post.user_id || user.email === ADMIN_EMAIL) && (
                     <button 
                       onClick={() => handleDelete(post.id)} 
                       className="text-xs font-bold text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors"

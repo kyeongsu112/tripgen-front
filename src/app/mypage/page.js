@@ -10,6 +10,7 @@ const supabase = createClient(
 );
 
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
+// const API_BASE_URL = "http://localhost:8080/api"; 
 
 export default function MyPage() {
   const [user, setUser] = useState(null);
@@ -21,23 +22,17 @@ export default function MyPage() {
   const [newNickname, setNewNickname] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
-
   const router = useRouter();
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
+      if (!session) { router.push('/login'); return; }
       setUser(session.user);
       const savedNickname = session.user.user_metadata?.nickname || session.user.email.split('@')[0];
       setNickname(savedNickname);
       setNewNickname(savedNickname);
-      if (session.user.user_metadata?.avatar_url) {
-        setAvatarUrl(`${session.user.user_metadata.avatar_url}?t=${new Date().getTime()}`);
-      }
+      if (session.user.user_metadata?.avatar_url) { setAvatarUrl(`${session.user.user_metadata.avatar_url}?t=${new Date().getTime()}`); }
       const { data: limit } = await supabase.from('user_limits').select('*').eq('user_id', session.user.id).single();
       setLimitInfo(limit || { tier: 'free', usage_count: 0 });
       fetchMyTrips(session.user.id);
@@ -78,6 +73,7 @@ export default function MyPage() {
       if (error) throw error;
       setNickname(newNickname);
       setIsEditing(false);
+      router.refresh();
       alert("닉네임이 변경되었습니다! ✨");
     } catch (err) { alert("업데이트 실패: " + err.message); }
   };
@@ -103,7 +99,7 @@ export default function MyPage() {
   const handleWithdrawal = async () => {
     if (!confirm("정말로 탈퇴하시겠습니까?\n모든 기록이 삭제됩니다.")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/auth/delete`, { data: { user_id: user.id } });
+      await axios.delete(`${API_BASE_URL}/auth/delete`, { data: { user_id: user.id, email: user.email } });
       await supabase.auth.signOut();
       alert("회원 탈퇴 완료");
       router.push('/');
@@ -112,9 +108,7 @@ export default function MyPage() {
 
   const getTripCoverImage = (trip) => {
     try {
-      for (const day of trip.itinerary_data.itinerary) {
-        for (const activity of day.activities) { if (activity.photoUrl) return activity.photoUrl; }
-      }
+      for (const day of trip.itinerary_data.itinerary) { for (const activity of day.activities) { if (activity.photoUrl) return activity.photoUrl; } }
     } catch (e) {}
     return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
   };
@@ -166,10 +160,7 @@ export default function MyPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                 <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border border-transparent ${badgeColor}`}>{tierName}</span>
-                <p className="text-slate-400 text-sm font-medium">{user.email}</p>
-              </div>
+              <div className="flex items-center gap-2 mt-1"><span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border border-transparent ${badgeColor}`}>{tierName}</span><p className="text-slate-400 text-sm font-medium">{user.email}</p></div>
             </div>
           </div>
           <div className="w-full md:w-auto flex flex-col items-end gap-4">
@@ -183,7 +174,6 @@ export default function MyPage() {
 
         <div className="space-y-8">
           <div className="flex items-center justify-between"><h2 className="text-2xl font-bold text-slate-900">내 여행 보관함 <span className="text-rose-500 ml-1 text-lg">{myTrips.length}</span></h2><button onClick={() => router.push('/')} className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-800 transition shadow-md">+ 새 여행 만들기</button></div>
-          
           {myTrips.length === 0 ? (
             <div className="border-2 border-dashed border-slate-200 rounded-3xl p-24 text-center bg-slate-50/50"><div className="text-5xl mb-4 opacity-20">🗺️</div><p className="text-slate-500 font-medium mb-6">아직 저장된 여행 일정이 없습니다.</p><button onClick={() => router.push('/')} className="text-rose-500 font-bold hover:underline">첫 번째 여행을 계획해보세요</button></div>
           ) : (
@@ -195,8 +185,6 @@ export default function MyPage() {
                     <div className="relative aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-xl transition-all duration-300">
                        <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" onError={(e) => {e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}} />
                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-slate-900">{trip.duration}</div>
-                       
-                       {/* ✨ 버튼 항상 표시 */}
                        <div className="absolute bottom-3 right-3 flex gap-2">
                           <button onClick={(e) => handleShare(e, trip.id)} className="bg-white text-slate-800 p-2 rounded-full shadow-md hover:text-blue-600 transition hover:scale-110" title="공유">🔗</button>
                           <button onClick={(e) => handleDelete(e, trip.id)} className="bg-white text-slate-800 p-2 rounded-full shadow-md hover:text-rose-500 transition hover:scale-110" title="삭제">🗑️</button>

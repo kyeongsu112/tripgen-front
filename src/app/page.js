@@ -4,7 +4,6 @@ import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// --- 설정 ---
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -22,11 +21,11 @@ function HomeContent() {
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [myTrips, setMyTrips] = useState([]);
   
-  // URL 기반 탭 관리
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get('view') || 'home'; 
 
+  // ✨ 스타일/동행 제거된 폼 데이터
   const [formData, setFormData] = useState({ 
     destination: "", 
     startDate: "", 
@@ -106,8 +105,6 @@ function HomeContent() {
     }
     return () => clearInterval(interval);
   }, [showAd, adTimer]);
-
-  // --- 핸들러 함수들 ---
 
   const handleLogoClick = () => {
     router.push('/?view=home');
@@ -324,18 +321,16 @@ function HomeContent() {
         </div>
       )}
 
-      {/* ✨ 헤더 (수정됨) */}
+      {/* 헤더 */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 h-16 md:h-20 flex items-center">
         <div className="max-w-7xl mx-auto px-4 md:px-6 w-full flex justify-between items-center">
           <div className="flex items-center gap-4 md:gap-8">
-            {/* 로고 */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={handleLogoClick}>
               <span className="text-2xl md:text-3xl text-rose-500">✈️</span>
-              {/* ✨ [수정] 로고 텍스트 색상을 Rose Red로 변경 */}
               <span className="text-lg md:text-xl font-extrabold tracking-tight text-rose-500">TripGen</span>
             </div>
             
-            {/* ✨ [데스크톱 메뉴] 그룹화: [생성|보관] + 건의 */}
+            {/* 중앙 메뉴 그룹 */}
             <div className="hidden md:flex items-center gap-3">
               <div className="flex gap-1 bg-slate-100/80 p-1.5 rounded-full border border-slate-200">
                   <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 ${activeTab==="home" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>일정 생성</button>
@@ -346,7 +341,7 @@ function HomeContent() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* ✨ [모바일 메뉴] 그룹화 적용 */}
+            {/* 모바일 메뉴 */}
             <div className="flex md:hidden items-center gap-2 mr-1">
                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                   <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-md ${activeTab==="home" ? "bg-white text-black shadow-sm" : "text-slate-500"}`}>생성</button>
@@ -357,7 +352,7 @@ function HomeContent() {
 
             {isUserLoading ? <div className="w-24 h-9 bg-slate-100 rounded-full animate-pulse"></div> : user ? (
               <div className="flex items-center gap-2 md:gap-3">
-                <span className="hidden lg:block text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">{usageInfo.tier === 'admin' ? '∞ 무제한' : `남은 횟수: ${Math.max(0, (usageInfo.tier==='pro'?30:3) - usageInfo.usage_count)}`}</span>
+                <span className="hidden lg:block text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">{usageInfo.tier === 'admin' ? '∞' : `남은 횟수: ${Math.max(0, (usageInfo.tier==='pro'?30:3) - usageInfo.usage_count)}`}</span>
                 {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && <button onClick={() => router.push('/admin')} className="text-xs font-bold text-slate-500 hover:text-black">ADMIN</button>}
                 <button onClick={() => router.push('/mypage')} className="flex items-center gap-2 bg-white border border-slate-200 rounded-full pl-2 pr-1 py-1 hover:shadow-md transition duration-200"><span className="text-xs font-bold text-slate-700 ml-1 hidden sm:inline">MY</span><div className="w-7 h-7 bg-slate-800 rounded-full text-white flex items-center justify-center text-[10px]">👤</div></button>
               </div>
@@ -368,7 +363,6 @@ function HomeContent() {
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
         
-        {/* 보관함 탭 */}
         {activeTab === "mytrip" && user && (
           <div className="space-y-8 animate-fade-in-up">
              <div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-bold text-slate-900">내 여행 보관함</h2><span className="text-rose-500 font-bold text-lg">{myTrips.length}</span></div>
@@ -400,7 +394,6 @@ function HomeContent() {
           </div>
         )}
 
-        {/* 홈 탭 (입력 폼 & 결과) */}
         {activeTab === "home" && (
           <>
             {!result && (
@@ -412,6 +405,7 @@ function HomeContent() {
                 
                 <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-100 relative">
                   <form onSubmit={handleGenerateClick} className="space-y-6 md:space-y-8">
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
@@ -460,6 +454,7 @@ function HomeContent() {
 
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
+                {/* 결과 상단 */}
                 <div className="mb-8 border-b border-slate-100 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-2 md:mb-3 leading-tight">{result.itinerary_data.trip_title}</h1>
@@ -477,6 +472,7 @@ function HomeContent() {
 
                 <div className="flex flex-col lg:flex-row gap-8 h-auto lg:h-[calc(100vh-200px)] min-h-[600px]">
                   
+                  {/* 왼쪽: 일정 리스트 */}
                   <div className={`lg:w-[45%] flex flex-col h-full ${showMobileMap ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide px-1">
                       {result.itinerary_data.itinerary.map((day, idx) => (
@@ -516,6 +512,7 @@ function HomeContent() {
                     </div>
                   </div>
 
+                  {/* 오른쪽: 지도 */}
                   <div className={`lg:w-[55%] h-full bg-slate-100 lg:rounded-[2rem] overflow-hidden shadow-inner border border-slate-200 lg:sticky lg:top-24 ${showMobileMap ? 'fixed inset-0 z-50 rounded-none' : 'hidden lg:block relative'}`}>
                     {getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
                       <>
@@ -528,12 +525,14 @@ function HomeContent() {
 
                 </div>
                 
+                {/* 모바일용 지도 버튼 */}
                 {!showMobileMap && (
                     <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
                         <button onClick={() => setShowMobileMap(true)} className="bg-black text-white px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 hover:scale-105 transition">🗺️ 지도 보기</button>
                     </div>
                 )}
 
+                {/* 수정 요청 바 */}
                 {!showMobileMap && (
                     <div className="fixed lg:static bottom-0 left-0 w-full bg-white border-t lg:border border-slate-200 p-4 rounded-t-2xl lg:rounded-2xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30">
                       <div className="max-w-6xl mx-auto lg:max-w-none">
