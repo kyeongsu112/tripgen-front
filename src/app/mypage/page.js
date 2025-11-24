@@ -11,7 +11,6 @@ const supabase = createClient(
 );
 
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
-// const API_BASE_URL = "http://localhost:8080/api"; 
 
 export default function MyPage() {
   const [user, setUser] = useState(null);
@@ -19,10 +18,14 @@ export default function MyPage() {
   const [myTrips, setMyTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // ✨ 닉네임 관련 State 추가
+  // 닉네임 관련
   const [nickname, setNickname] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState("");
+
+  // ✨ 프로필 사진 관련 State
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const router = useRouter();
 
@@ -35,16 +38,20 @@ export default function MyPage() {
       }
       setUser(session.user);
       
-      // ✨ 저장된 닉네임 불러오기 (없으면 이메일 아이디 사용)
+      // 닉네임 불러오기
       const savedNickname = session.user.user_metadata?.nickname || session.user.email.split('@')[0];
       setNickname(savedNickname);
       setNewNickname(savedNickname);
+
+      // ✨ 저장된 프로필 사진 URL 불러오기
+      if (session.user.user_metadata?.avatar_url) {
+        setAvatarUrl(session.user.user_metadata.avatar_url);
+      }
 
       // 사용량 정보 로드
       const { data: limit } = await supabase.from('user_limits').select('*').eq('user_id', session.user.id).single();
       setLimitInfo(limit || { tier: 'free', usage_count: 0 });
 
-      // 여행 목록 로드
       fetchMyTrips(session.user.id);
     };
     checkUser();
@@ -61,23 +68,64 @@ export default function MyPage() {
     }
   };
 
-  // ✨ 닉네임 업데이트 함수
+  // ✨ 프로필 사진 업로드 핸들러
+  const handleAvatarUpload = async (event) => {
+    try {
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('이미지를 선택해주세요.');
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`; // 유니크한 파일명 생성
+      const filePath = `${fileName}`;
+
+      // 1. Supabase Storage에 업로드
+      const { error: uploadError } = await supabase.storage
+        .from('avatars') // 아까 만든 버킷 이름
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. 공개 URL 가져오기
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // 3. 유저 메타데이터 업데이트
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      // 4. 화면 갱신
+      setAvatarUrl(publicUrl);
+      alert("프로필 사진이 변경되었습니다! 📸");
+
+    } catch (error) {
+      alert('업로드 실패: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (!newNickname.trim()) {
       alert("닉네임을 입력해주세요.");
       return;
     }
-
     try {
       const { error } = await supabase.auth.updateUser({
         data: { nickname: newNickname }
       });
-
       if (error) throw error;
-
       setNickname(newNickname);
       setIsEditing(false);
-      // alert("프로필이 업데이트되었습니다!"); // 너무 자주 뜨면 귀찮으므로 생략 가능
+      alert("닉네임이 변경되었습니다!");
     } catch (err) {
       alert("업데이트 실패: " + err.message);
     }
@@ -102,6 +150,19 @@ export default function MyPage() {
     router.push('/');
   };
 
+  const handleWithdrawal = async () => {
+    if (!confirm("정말로 탈퇴하시겠습니까?\n모든 여행 기록이 삭제되며 복구할 수 없습니다.")) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/auth/delete`, { data: { user_id: user.id } });
+      await supabase.auth.signOut();
+      alert("회원 탈퇴가 완료되었습니다.");
+      router.push('/');
+    } catch (err) {
+      console.error(err);
+      alert("탈퇴 처리에 실패했습니다.");
+    }
+  };
+
   const getTripCoverImage = (trip) => {
     try {
       for (const day of trip.itinerary_data.itinerary) {
@@ -115,7 +176,6 @@ export default function MyPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin text-4xl">⚪</div></div>;
 
-  // 등급 계산 로직
   const tier = limitInfo?.tier || 'free';
   let maxLimit = 3;
   let tierName = "Free Plan";
@@ -147,12 +207,38 @@ export default function MyPage() {
         {/* 프로필 섹션 (카드형) */}
         <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-12 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-6 w-full md:w-auto">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-4xl border-4 border-white shadow-md shrink-0">
-              👤
+            
+            {/* ✨ 프로필 사진 업로드 영역 */}
+            <div className="relative group">
+              <label htmlFor="avatar-upload" className="cursor-pointer">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-slate-100 flex items-center justify-center relative">
+                  {uploading ? (
+                    <span className="text-xs font-bold text-slate-400">업로드..</span>
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-4xl">👤</span>
+                  )}
+                  
+                  {/* 호버 시 카메라 아이콘 표시 */}
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xl">📷</span>
+                  </div>
+                </div>
+              </label>
+              <input 
+                id="avatar-upload" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleAvatarUpload} 
+                className="hidden" 
+                disabled={uploading}
+              />
             </div>
+
             <div className="flex-1">
-              {/* ✨ 닉네임 수정 영역 */}
-              <div className="flex items-center gap-3 mb-1 h-9">
+              {/* 닉네임 수정 UI */}
+              <div className="flex items-center gap-3 mb-1 min-h-[36px]">
                 {isEditing ? (
                   <div className="flex items-center gap-2 animate-fade-in">
                     <input 
@@ -172,7 +258,7 @@ export default function MyPage() {
                     </h1>
                     <button 
                       onClick={() => setIsEditing(true)} 
-                      className="text-slate-300 hover:text-slate-600 transition opacity-0 group-hover:opacity-100"
+                      className="text-slate-400 hover:text-rose-500 transition opacity-0 group-hover:opacity-100 bg-slate-50 p-1 rounded-full"
                       title="닉네임 변경"
                     >
                       ✏️
@@ -191,7 +277,6 @@ export default function MyPage() {
           </div>
 
           <div className="w-full md:w-auto flex flex-col items-end gap-4">
-             {/* 사용량 게이지 */}
              <div className="bg-slate-50 px-6 py-3 rounded-xl border border-slate-100 w-full md:w-64">
                 <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
                   <span>이번 달 생성</span>
@@ -231,7 +316,6 @@ export default function MyPage() {
                 const coverImage = getTripCoverImage(trip);
                 return (
                   <div key={trip.id} className="group cursor-pointer relative" onClick={() => router.push(`/share/${trip.id}`)}>
-                    {/* 이미지 영역 */}
                     <div className="relative aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-xl transition-all duration-300">
                        <img 
                           src={coverImage} 
@@ -239,12 +323,10 @@ export default function MyPage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
                           onError={(e) => {e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}}
                        />
-                       {/* 뱃지 */}
                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-slate-900">
                           {trip.duration}
                        </div>
                        
-                       {/* 삭제 버튼 (Hover 시 등장) */}
                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-start justify-end p-3">
                           <button 
                             onClick={(e) => handleDelete(e, trip.id)}
@@ -256,7 +338,6 @@ export default function MyPage() {
                        </div>
                     </div>
                     
-                    {/* 텍스트 정보 */}
                     <div className="px-1">
                       <h3 className="font-bold text-lg text-slate-900 truncate mb-1 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
                       <div className="flex justify-between items-center text-sm">
@@ -272,6 +353,17 @@ export default function MyPage() {
             </div>
           )}
         </div>
+
+        {/* 회원 탈퇴 섹션 */}
+        <div className="mt-24 pt-10 border-t border-slate-100 flex justify-center">
+           <button 
+             onClick={handleWithdrawal}
+             className="text-xs text-slate-400 hover:text-red-500 hover:underline transition"
+           >
+             회원 탈퇴하기
+           </button>
+        </div>
+
       </main>
     </div>
   );
