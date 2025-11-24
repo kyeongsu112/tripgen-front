@@ -10,7 +10,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// 배포 주소 (Render)
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
+// const API_BASE_URL = "http://localhost:8080/api"; 
 
 export default function MyPage() {
   const [user, setUser] = useState(null);
@@ -23,7 +25,7 @@ export default function MyPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState("");
 
-  // ✨ 프로필 사진 관련 State
+  // 프로필 사진 관련
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -38,14 +40,16 @@ export default function MyPage() {
       }
       setUser(session.user);
       
-      // 닉네임 불러오기
-      const savedNickname = session.user.user_metadata?.nickname || session.user.email.split('@')[0];
+      // 닉네임 & 사진 불러오기
+      const meta = session.user.user_metadata;
+      const savedNickname = meta?.nickname || session.user.email.split('@')[0];
+      
       setNickname(savedNickname);
       setNewNickname(savedNickname);
 
-      // ✨ 저장된 프로필 사진 URL 불러오기
-      if (session.user.user_metadata?.avatar_url) {
-        setAvatarUrl(session.user.user_metadata.avatar_url);
+      if (meta?.avatar_url) {
+        // 캐시 방지를 위해 쿼리스트링 추가
+        setAvatarUrl(`${meta.avatar_url}?t=${new Date().getTime()}`);
       }
 
       // 사용량 정보 로드
@@ -68,30 +72,30 @@ export default function MyPage() {
     }
   };
 
-  // ✨ 프로필 사진 업로드 핸들러
+  // ✨ 프로필 사진 업로드 (수정됨)
   const handleAvatarUpload = async (event) => {
     try {
       setUploading(true);
       if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('이미지를 선택해주세요.');
+        return; // 파일 선택 취소 시 그냥 리턴
       }
 
       const file = event.target.files[0];
+      // 파일명에 한글이나 특수문자가 있으면 에러 날 수 있으므로 영문+숫자로 변경
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`; // 유니크한 파일명 생성
-      const filePath = `${fileName}`;
+      const fileName = `${user.id}/profile_${Date.now()}.${fileExt}`; 
 
-      // 1. Supabase Storage에 업로드
+      // 1. Supabase Storage에 업로드 (upsert: true로 덮어쓰기 허용)
       const { error: uploadError } = await supabase.storage
-        .from('avatars') // 아까 만든 버킷 이름
-        .upload(filePath, file);
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // 2. 공개 URL 가져오기
       const { data: urlData } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl;
 
@@ -102,31 +106,39 @@ export default function MyPage() {
 
       if (updateError) throw updateError;
 
-      // 4. 화면 갱신
+      // 4. 화면 갱신 (즉시 반영)
       setAvatarUrl(publicUrl);
+      router.refresh(); // Next.js 데이터 갱신
       alert("프로필 사진이 변경되었습니다! 📸");
 
     } catch (error) {
+      console.error(error);
       alert('업로드 실패: ' + error.message);
     } finally {
       setUploading(false);
     }
   };
 
+  // ✨ 닉네임 변경 (수정됨)
   const handleUpdateProfile = async () => {
     if (!newNickname.trim()) {
       alert("닉네임을 입력해주세요.");
       return;
     }
+
     try {
       const { error } = await supabase.auth.updateUser({
         data: { nickname: newNickname }
       });
+
       if (error) throw error;
+
       setNickname(newNickname);
       setIsEditing(false);
-      alert("닉네임이 변경되었습니다!");
+      router.refresh(); // 데이터 동기화
+      alert("닉네임이 변경되었습니다! ✨");
     } catch (err) {
+      console.error(err);
       alert("업데이트 실패: " + err.message);
     }
   };
@@ -204,7 +216,7 @@ export default function MyPage() {
 
       <main className="max-w-6xl mx-auto px-6 py-12">
         
-        {/* 프로필 섹션 (카드형) */}
+        {/* 프로필 섹션 */}
         <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-12 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-6 w-full md:w-auto">
             
@@ -220,7 +232,7 @@ export default function MyPage() {
                     <span className="text-4xl">👤</span>
                   )}
                   
-                  {/* 호버 시 카메라 아이콘 표시 */}
+                  {/* 호버 시 카메라 아이콘 */}
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-xl">📷</span>
                   </div>
@@ -354,7 +366,6 @@ export default function MyPage() {
           )}
         </div>
 
-        {/* 회원 탈퇴 섹션 */}
         <div className="mt-24 pt-10 border-t border-slate-100 flex justify-center">
            <button 
              onClick={handleWithdrawal}

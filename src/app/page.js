@@ -378,7 +378,7 @@ export default function Home() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
-                        <input placeholder="도시나 지역 검색 (예: 도쿄)" className={`w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-none ring-1 ring-transparent focus:ring-slate-900'}`} value={formData.destination} onChange={handleDestinationChange} required />
+                        <input placeholder="도시나 지역 검색" className={`w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-none ring-1 ring-transparent focus:ring-slate-900'}`} value={formData.destination} onChange={handleDestinationChange} required />
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {suggestions.map((item, idx) => (
