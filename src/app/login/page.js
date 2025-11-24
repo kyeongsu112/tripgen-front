@@ -1,4 +1,3 @@
-// src/app/login/page.js
 "use client";
 
 import { useState } from "react";
@@ -14,7 +13,7 @@ const supabase = createClient(
 export default function LoginPage() {
   const router = useRouter();
 
-  const [mode, setMode] = useState("signup"); // 'signup' | 'login'
+  const [mode, setMode] = useState("login"); // 'signup' | 'login' (기본값을 login으로 변경)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,30 +33,27 @@ export default function LoginPage() {
 
       if (mode === "signup") {
         // 회원가입
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
-          // 이메일 확인을 켜두었다면 redirect 주소 지정
-          // options: { emailRedirectTo: `${window.location.origin}` },
         });
 
         if (error) throw error;
 
-        // 이메일 확인 OFF라면 바로 로그인된 상태, ON이면 메일 확인 안내
         setMessage(
-          "회원가입이 완료되었습니다. 설정에 따라 이메일 확인이 필요할 수 있습니다."
+          "회원가입이 완료되었습니다. 이메일 확인 후 로그인해주세요."
         );
-        router.push("/"); // 로그인 후 메인으로 이동
+        setMode("login"); // 가입 후 로그인 모드로 전환
       } else {
         // 로그인
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
 
-        setMessage("로그인에 성공했습니다.");
+        // setMessage("로그인에 성공했습니다."); // 바로 이동하므로 생략 가능
         router.push("/");
       }
     } catch (err) {
@@ -68,7 +64,7 @@ export default function LoginPage() {
     }
   };
 
-  // --- (선택) 구글 소셜 로그인 ---
+  // --- 구글 소셜 로그인 ---
   const handleGoogleLogin = async () => {
     setLoading(true);
     setMessage(null);
@@ -76,7 +72,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`, // 리다이렉트 URL 명시
         },
       });
       if (error) throw error;
@@ -89,130 +85,130 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans text-gray-800">
-      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-gray-100 text-center">
-        {/* 헤더 영역 */}
-        <div className="mb-10">
-          <h1
-            className="text-4xl font-extrabold text-blue-600 mb-3 cursor-pointer hover:scale-105 transition transform"
-            onClick={() => router.push("/")}
-          >
-            ✈️ TripGen
-          </h1>
-          <h2 className="text-lg font-medium text-gray-500">
-            여행을 시작하는 가장 쉬운 방법
-          </h2>
+    <div className="min-h-screen bg-white font-sans text-slate-800 flex flex-col">
+      
+      {/* 헤더 (심플) */}
+      <nav className="w-full px-6 h-20 flex items-center border-b border-slate-100">
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
+            <span className="text-3xl text-rose-500">✈️</span>
+            <span className="text-xl font-bold text-rose-500 tracking-tight">TripGen</span>
+          </div>
         </div>
+      </nav>
 
-        {/* 모드 토글 */}
-        <div className="flex justify-center mb-6 text-sm">
-          <button
-            className={`px-4 py-2 rounded-l-full border border-gray-200 ${
-              mode === "signup" ? "bg-blue-50 text-blue-600 font-semibold" : "bg-white"
-            }`}
-            onClick={() => setMode("signup")}
-          >
-            회원가입
-          </button>
-          <button
-            className={`px-4 py-2 rounded-r-full border border-gray-200 border-l-0 ${
-              mode === "login" ? "bg-blue-50 text-blue-600 font-semibold" : "bg-white"
-            }`}
-            onClick={() => setMode("login")}
-          >
-            로그인
-          </button>
-        </div>
-
-        {/* 이메일 폼 */}
-        <form onSubmit={handleEmailSubmit} className="space-y-4 text-left mb-6">
-          <div>
-            <label className="block text-sm mb-1">이메일</label>
-            <input
-              type="email"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
+      {/* 메인 컨텐츠 */}
+      <main className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold text-slate-900 mb-3">
+              {mode === 'login' ? '다시 만나서 반가워요!' : '여행의 시작,'}
+            </h1>
+            <p className="text-slate-500 text-lg">
+              {mode === 'login' ? 'TripGen으로 여행을 계속하세요.' : 'TripGen과 함께 완벽한 일정을 만들어보세요.'}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm mb-1">비밀번호</label>
-            <input
-              type="password"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              placeholder="8자 이상 비밀번호"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              required
-            />
-          </div>
+          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-100 p-8 md:p-10">
+            
+            {/* 모드 토글 (탭 스타일) */}
+            <div className="flex mb-8 bg-slate-100 p-1 rounded-xl">
+              <button
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                  mode === "login" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => { setMode("login"); setMessage(null); }}
+              >
+                로그인
+              </button>
+              <button
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                  mode === "signup" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => { setMode("signup"); setMessage(null); }}
+              >
+                회원가입
+              </button>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition transform hover:-translate-y-0.5 disabled:opacity-60"
-          >
-            {loading
-              ? "처리 중..."
-              : mode === "signup"
-              ? "이메일로 회원가입"
-              : "이메일로 로그인"}
-          </button>
-        </form>
+            {/* 이메일 폼 */}
+            <form onSubmit={handleEmailSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">이메일</label>
+                <input
+                  type="email"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-        {/* 구분선 */}
-        <div className="flex items-center my-4">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="px-3 text-xs text-gray-400">또는</span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">비밀번호</label>
+                <input
+                  type="password"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
+                  placeholder="8자 이상 입력"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
 
-        {/* (선택) 구글 로그인 버튼 */}
-        <div className="space-y-4">
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full bg-white border border-gray-200 text-gray-700 p-4 rounded-xl font-bold flex items-center justify-center hover:bg-gray-50 hover:shadow-md transition transform hover:-translate-y-0.5"
-            disabled={loading}
-          >
-            <svg
-              className="w-6 h-6 mr-3"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-rose-100 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              >
+                {loading ? "처리 중..." : (mode === "login" ? "로그인하기" : "가입하기")}
+              </button>
+            </form>
+
+            {/* 구분선 */}
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-4 text-slate-400 font-medium">또는</span>
+              </div>
+            </div>
+
+            {/* 구글 로그인 버튼 */}
+            <button
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3"
             >
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-            Google로 계속하기
-          </button>
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+              <span>Google 계정으로 계속하기</span>
+            </button>
+
+            {message && (
+              <div className={`mt-6 p-4 rounded-xl text-sm font-medium text-center ${message.includes('오류') ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                {message}
+              </div>
+            )}
+          </div>
+
+          <p className="text-center mt-8 text-xs text-slate-400">
+            {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'} 
+            <span 
+              onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(null); }}
+              className="ml-2 text-slate-800 font-bold cursor-pointer hover:underline"
+            >
+              {mode === 'login' ? '회원가입' : '로그인'}
+            </span>
+          </p>
         </div>
+      </main>
 
-        {message && (
-          <p className="mt-6 text-xs text-gray-500 whitespace-pre-line">{message}</p>
-        )}
-
-        <p className="text-center mt-6 text-xs text-gray-400">
-          로그인 시 이용약관 및 개인정보처리방침에 동의하게 됩니다.
-        </p>
-      </div>
+      <footer className="py-8 text-center text-slate-400 text-xs border-t border-slate-50">
+        © 2025 TripGen Inc. All rights reserved.
+      </footer>
     </div>
   );
 }

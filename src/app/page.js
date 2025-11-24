@@ -10,10 +10,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// 로컬 테스트 중이라면 반드시 localhost 주소 사용
-// const API_BASE_URL = "http://localhost:8080/api"; 
-// 배포 시에는 아래 주소 사용
+// 배포 주소 (Render)
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
+// const API_BASE_URL = "http://localhost:8080/api"; 
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -27,14 +26,11 @@ export default function Home() {
     destination: "", 
     startDate: "", 
     endDate: "", 
-    style: "", 
-    companions: "",
     arrivalTime: "14:00",
     departureTime: "12:00",
     otherRequirements: "" 
   });
 
-  // ✨ 자동완성 관련 State
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceTimeout = useRef(null);
@@ -69,40 +65,28 @@ export default function Home() {
     }
   }, [activeTab, user]);
 
-  // ✨ [핵심] 여행지 입력 핸들러 (자동완성 API 호출)
   const handleDestinationChange = (e) => {
     const value = e.target.value;
     setFormData({ ...formData, destination: value });
 
-    // 입력값이 없으면 추천 목록 숨김
-    if (value.length < 1) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    // 디바운싱 (0.3초 대기 후 요청)
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
-    debounceTimeout.current = setTimeout(async () => {
-      try {
-        console.log("검색 요청:", value); // 디버깅용 로그
-        const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
-          params: { query: value }
-        });
-        console.log("검색 결과:", res.data.predictions); // 디버깅용 로그
-        
-        if (res.data.predictions && res.data.predictions.length > 0) {
-          setSuggestions(res.data.predictions);
+    if (value.length > 1) {
+      debounceTimeout.current = setTimeout(async () => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
+            params: { query: value }
+          });
+          setSuggestions(res.data.predictions || []);
           setShowSuggestions(true);
-        } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
+        } catch (err) {
+          console.error("Autocomplete Error", err);
         }
-      } catch (err) {
-        console.error("Autocomplete Error", err);
-      }
-    }, 300);
+      }, 300);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   const selectSuggestion = (placeName) => {
@@ -111,7 +95,6 @@ export default function Home() {
     setShowSuggestions(false);
   };
 
-  // ... (나머지 코드는 기존과 동일)
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!user) {
@@ -133,18 +116,24 @@ export default function Home() {
     }
   };
 
+  // ✨ [수정된 부분] AI 수정 요청 시 trip_id 전송
   const handleModify = async () => {
     if (!modificationPrompt.trim()) return;
     setModifying(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/modify-trip`, {
+        trip_id: result.id, // ✨ 중요: DB 업데이트를 위해 ID 전달
         currentItinerary: result.itinerary_data,
         userRequest: modificationPrompt,
         destination: result.destination,
         user_id: user?.id
       });
       
-      setResult({ ...result, itinerary_data: res.data.data });
+      // 수정된 데이터로 화면 업데이트 (DB에도 이미 저장됨)
+      setResult({
+        ...result,
+        itinerary_data: res.data.data
+      });
       setModificationPrompt("");
       alert("일정이 수정되었습니다! ✨");
     } catch (err) {
@@ -250,7 +239,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 탭 2: 홈 */}
+        {/* 탭 2: 홈 (입력 및 결과) */}
         {activeTab === "home" && (
           <>
             {!result && (
@@ -263,27 +252,19 @@ export default function Home() {
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_6px_30px_rgba(0,0,0,0.08)] border border-slate-100 relative">
                   <form onSubmit={handleGenerate} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      
-                      {/* ✨ 여행지 입력 + 자동완성 UI (수정됨) */}
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
                         <input 
                           placeholder="도시나 지역 검색" 
                           className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all" 
                           value={formData.destination}
-                          onChange={handleDestinationChange} // ✨ 여기서 이벤트 연결됨
+                          onChange={handleDestinationChange}
                           required 
                         />
-                        
-                        {/* ✨ 자동완성 드롭다운 */}
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {suggestions.map((item, idx) => (
-                              <div 
-                                key={idx} 
-                                className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" 
-                                onClick={() => selectSuggestion(item.description)}
-                              >
+                              <div key={idx} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm font-medium text-slate-700" onClick={() => selectSuggestion(item.description)}>
                                 <span>📍</span>{item.description}
                               </div>
                             ))}
@@ -291,10 +272,9 @@ export default function Home() {
                         )}
                       </div>
 
-                      {/* ... 날짜 입력 ... */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">출발일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">마지막일</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크인</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, startDate: e.target.value})} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">체크아웃</label><input type="date" className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border-none p-4 rounded-xl font-medium outline-none ring-1 ring-transparent focus:ring-slate-900 transition-all text-slate-600" onChange={e=>setFormData({...formData, endDate: e.target.value})} required /></div>
                       </div>
                     </div>
 
@@ -319,7 +299,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* 결과 화면 (기존과 동일) */}
+            {/* 결과 화면 */}
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
                 <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
@@ -331,7 +311,12 @@ export default function Home() {
                       <span className="flex items-center gap-1"><span className="text-rose-500">📍</span> {result.destination}</span>
                     </div>
                   </div>
-                  <button onClick={() => setResult(null)} className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-semibold transition">새로운 검색</button>
+                  
+                  {/* ✨ 공유 & 새 검색 버튼 */}
+                  <div className="flex items-center gap-3">
+                    <button onClick={(e) => handleShare(e, result.id)} className="px-5 py-2.5 rounded-lg bg-black text-white hover:bg-slate-800 text-sm font-bold transition shadow-md flex items-center gap-2"><span>🔗</span> 공유하기</button>
+                    <button onClick={() => setResult(null)} className="px-5 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-bold transition">새로운 검색</button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-200px)] min-h-[600px]">

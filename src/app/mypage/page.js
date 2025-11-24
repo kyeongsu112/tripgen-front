@@ -12,19 +12,17 @@ const supabase = createClient(
 
 // 2. 백엔드 API 주소 (Render)
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+// const API_BASE_URL = "http://localhost:8080/api"; 
 
 export default function MyPage() {
-  // --- 상태 관리 ---
   const [user, setUser] = useState(null);
-  const [limitInfo, setLimitInfo] = useState(null); // 사용량 및 등급 정보
-  const [myTrips, setMyTrips] = useState([]); // 생성한 여행 목록
+  const [limitInfo, setLimitInfo] = useState(null);
+  const [myTrips, setMyTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // --- 초기 데이터 로드 ---
   useEffect(() => {
     const init = async () => {
-      // 로그인 체크
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/login");
@@ -32,198 +30,199 @@ export default function MyPage() {
       }
       setUser(user);
 
-      // 1. 사용량/등급 정보 가져오기
-      const { data: limit } = await supabase
-        .from('user_limits')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      
-      // 데이터가 없으면 기본값(Free, 0회) 설정
+      // 사용량 정보
+      const { data: limit } = await supabase.from('user_limits').select('*').eq('user_id', user.id).single();
       setLimitInfo(limit || { tier: 'free', usage_count: 0 });
 
-      // 2. 내 여행 목록 가져오기
+      // 여행 목록
       fetchMyTrips(user.id);
     };
     init();
   }, []);
 
-  // 여행 목록 조회 함수
   const fetchMyTrips = async (userId) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/my-trips?user_id=${userId}`);
       setMyTrips(res.data.data);
     } catch (err) {
-      console.error("여행 목록 로드 실패:", err);
+      console.error("Load Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // 삭제 핸들러
-  const handleDelete = async (tripId) => {
+  const handleDelete = async (e, tripId) => {
+    e.stopPropagation();
     if (!confirm("정말 이 여행 일정을 삭제하시겠습니까?")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/trip/${tripId}`, {
-        data: { user_id: user.id }
-      });
+      await axios.delete(`${API_BASE_URL}/trip/${tripId}`, { data: { user_id: user.id } });
       alert("삭제되었습니다.");
-      fetchMyTrips(user.id); // 목록 새로고침
+      setMyTrips(myTrips.filter(t => t.id !== tripId));
     } catch (err) {
       alert("삭제 오류: " + err.message);
     }
   };
 
-  // 공유 핸들러 (클립보드 복사)
-  const handleShare = (tripId) => {
-    const shareUrl = `${window.location.origin}/trip/${tripId}`;
+  const handleShare = (e, tripId) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/share/${tripId}`;
     navigator.clipboard.writeText(shareUrl)
-      .then(() => alert("📋 공유 링크가 복사되었습니다!\n친구에게 전달해보세요."))
-      .catch(() => alert("복사 실패. URL을 직접 복사해주세요: " + shareUrl));
+      .then(() => alert("링크 복사 완료! 🔗"))
+      .catch(() => alert("URL을 직접 복사해주세요: " + shareUrl));
   };
 
-  // 로그아웃 핸들러
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
-    router.refresh();
   };
 
-  // 로딩 중 화면
-  if (!user) return <div className="min-h-screen flex items-center justify-center text-gray-500">로딩 중...</div>;
+  const getTripCoverImage = (trip) => {
+    try {
+      for (const day of trip.itinerary_data.itinerary) {
+        for (const activity of day.activities) {
+          if (activity.photoUrl) return activity.photoUrl;
+        }
+      }
+    } catch (e) {}
+    return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
+  };
 
-  // --- 등급별 UI 설정 ---
+  if (!user) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin text-4xl">⚪</div></div>;
+
   const tier = limitInfo?.tier || 'free';
   let maxLimit = 3;
-  let tierName = "FREE 플랜";
-  let badgeColor = "bg-blue-100 text-blue-700";
+  let tierName = "Free Plan";
+  
+  if (tier === 'pro') { maxLimit = 30; tierName = "Pro Plan"; }
+  else if (tier === 'admin') { maxLimit = Infinity; tierName = "Admin"; }
 
-  if (tier === 'pro') {
-    maxLimit = 30;
-    tierName = "PRO 플랜";
-    badgeColor = "bg-purple-100 text-purple-700";
-  } else if (tier === 'admin') {
-    maxLimit = Infinity;
-    tierName = "👑 ADMIN (무제한)";
-    badgeColor = "bg-gray-800 text-white";
-  }
-
-  // 게이지 퍼센트 계산 (Admin은 0%로 고정하여 깔끔하게 표시)
   const percentage = tier === 'admin' ? 0 : Math.min((limitInfo?.usage_count / maxLimit) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-gray-800">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* 상단 헤더 */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">마이페이지</h1>
-          <button onClick={() => router.push('/')} className="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 transition">
-            ← 홈으로 돌아가기
+    <div className="min-h-screen bg-white font-sans text-slate-800">
+      
+      {/* 헤더 */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-slate-100 h-20 flex items-center">
+        <div className="max-w-6xl mx-auto px-6 w-full flex justify-between items-center">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
+            <span className="text-3xl text-rose-500">✈️</span>
+            <span className="text-xl font-bold text-rose-500 tracking-tight">TripGen</span>
+          </div>
+          <button onClick={() => router.push('/')} className="text-sm font-bold text-slate-500 hover:text-slate-900 transition">
+            홈으로 가기
           </button>
         </div>
+      </nav>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          
-          {/* [왼쪽] 내 정보 및 사용량 카드 */}
-          <div className="md:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 sticky top-24">
-              <h2 className="text-lg font-bold mb-4 text-gray-700">내 정보</h2>
-              
-              <div className="mb-6">
-                <p className="text-xs text-gray-400 mb-1">이메일</p>
-                <p className="font-bold text-gray-900 break-all">{user.email}</p>
-                <div className={`mt-2 inline-block px-3 py-1 text-xs font-bold rounded-full ${badgeColor}`}>
+      <main className="max-w-6xl mx-auto px-6 py-12">
+        
+        {/* 프로필 섹션 (카드형) */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-12 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-4xl border-4 border-white shadow-md">
+              👤
+            </div>
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-slate-900">안녕하세요, 여행자님!</h1>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tier === 'pro' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
                   {tierName}
-                </div>
+                </span>
               </div>
-              
-              {/* 사용량 게이지 */}
-              <div className="mb-8 bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="font-bold text-gray-500">이번 달 사용량</span>
-                  <span className="font-bold text-blue-600">
-                    {limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit}회
-                  </span>
-                </div>
-                
-                {/* 게이지 바 (Admin은 숨김) */}
-                {tier !== 'admin' && (
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden mb-2">
-                    <div 
-                      className={`h-2.5 rounded-full transition-all duration-500 ${percentage >= 100 ? 'bg-red-500' : 'bg-blue-600'}`} 
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                )}
-                
-                <p className="text-xs text-gray-400 text-center">
-                  {tier === 'admin' 
-                    ? "관리자는 제한 없이 이용 가능합니다." 
-                    : (percentage >= 100 ? "이번 달 이용 한도를 초과했습니다." : "아직 여유가 있어요!")}
-                </p>
-              </div>
+              <p className="text-slate-500 font-medium">{user.email}</p>
+            </div>
+          </div>
 
-              <button onClick={handleLogout} className="w-full border border-gray-300 text-gray-500 py-3 rounded-xl text-sm hover:bg-gray-100 font-bold transition">
+          <div className="w-full md:w-auto flex flex-col items-end gap-4">
+             {/* 사용량 게이지 */}
+             <div className="bg-slate-50 px-6 py-3 rounded-xl border border-slate-100 w-full md:w-64">
+                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                  <span>이번 달 생성</span>
+                  <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit}</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-rose-500 h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                </div>
+             </div>
+             
+             <button onClick={handleLogout} className="text-sm font-bold text-slate-400 hover:text-slate-800 underline decoration-2 underline-offset-4 transition">
                 로그아웃
+             </button>
+          </div>
+        </div>
+
+        {/* 내 여행 목록 */}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">내 여행 보관함</h2>
+            <button onClick={() => router.push('/')} className="bg-black text-white px-5 py-2.5 rounded-full text-sm font-bold hover:bg-slate-800 transition shadow-md">
+              + 새 여행 만들기
+            </button>
+          </div>
+          
+          {myTrips.length === 0 ? (
+            <div className="border-2 border-dashed border-slate-200 rounded-3xl p-24 text-center bg-slate-50/50">
+              <div className="text-5xl mb-4 opacity-20">🗺️</div>
+              <p className="text-slate-500 font-medium mb-6">아직 저장된 여행 일정이 없습니다.</p>
+              <button onClick={() => router.push('/')} className="text-rose-500 font-bold hover:underline">
+                첫 번째 여행을 계획해보세요
               </button>
             </div>
-          </div>
-
-          {/* [오른쪽] 여행 기록 리스트 */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-6">
-              <h2 className="text-xl font-bold text-gray-900">✈️ 나의 여행 기록</h2>
-              <span className="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myTrips.length}</span>
-            </div>
-            
-            {loading ? (
-              <div className="text-center py-20 text-gray-400">데이터를 불러오는 중입니다...</div>
-            ) : myTrips.length === 0 ? (
-              <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-200">
-                <p className="text-gray-400 mb-4">아직 생성된 여행 일정이 없습니다.</p>
-                <button onClick={() => router.push('/')} className="text-blue-600 font-bold underline hover:text-blue-800">
-                  첫 번째 여행 만들기
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {myTrips.map((trip) => (
-                  <div key={trip.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition duration-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 mb-1">{trip.itinerary_data.trip_title}</h3>
-                      <div className="text-sm text-gray-500 flex flex-wrap gap-3">
-                        <span className="flex items-center gap-1">📍 {trip.destination}</span>
-                        <span className="text-gray-300">|</span>
-                        <span className="flex items-center gap-1">🗓️ {trip.duration}</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {new Date(trip.created_at).toLocaleDateString()} 생성됨
-                      </p>
+          ) : (
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {myTrips.map(trip => {
+                const coverImage = getTripCoverImage(trip);
+                return (
+                  <div key={trip.id} className="group cursor-pointer relative" onClick={() => router.push(`/share/${trip.id}`)}>
+                    {/* 이미지 영역 */}
+                    <div className="relative aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-xl transition-all duration-300">
+                       <img 
+                          src={coverImage} 
+                          alt={trip.destination} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                          onError={(e) => {e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}}
+                       />
+                       {/* 뱃지 */}
+                       <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-slate-900">
+                          {trip.duration}
+                       </div>
+                       
+                       {/* 오버레이 버튼들 (Hover 시 등장) */}
+                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-start justify-end p-3 gap-2">
+                          <button 
+                            onClick={(e) => handleShare(e, trip.id)}
+                            className="bg-white text-slate-800 p-2 rounded-full shadow-lg hover:scale-110 transition hover:text-blue-600"
+                            title="공유"
+                          >
+                            🔗
+                          </button>
+                          <button 
+                            onClick={(e) => handleDelete(e, trip.id)}
+                            className="bg-white text-slate-800 p-2 rounded-full shadow-lg hover:scale-110 transition hover:text-rose-500"
+                            title="삭제"
+                          >
+                            🗑️
+                          </button>
+                       </div>
                     </div>
                     
-                    <div className="flex gap-2 self-end sm:self-auto">
-                      <button 
-                        onClick={() => handleShare(trip.id)}
-                        className="text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-100 transition"
-                      >
-                        공유
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(trip.id)}
-                        className="text-red-500 bg-red-50 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-100 transition"
-                      >
-                        삭제
-                      </button>
+                    {/* 텍스트 정보 */}
+                    <div className="px-1">
+                      <h3 className="font-bold text-lg text-slate-900 truncate mb-1 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
+                      <div className="flex justify-between items-center text-sm">
+                        <p className="text-slate-500 font-medium flex items-center gap-1">
+                          <span>📍</span> {trip.destination}
+                        </p>
+                        <p className="text-slate-400 text-xs">{new Date(trip.created_at).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
