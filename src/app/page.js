@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // --- 설정 ---
 const supabase = createClient(
@@ -12,18 +12,21 @@ const supabase = createClient(
 
 // 배포 주소 (Render)
 const API_BASE_URL = "https://tripgen-server.onrender.com/api"; 
-// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트 시 주석 해제
+// const API_BASE_URL = "http://localhost:8080/api"; 
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export default function Home() {
-  // --- 상태 관리 ---
+function HomeContent() {
   const [user, setUser] = useState(null);
   const [usageInfo, setUsageInfo] = useState({ tier: 'free', usage_count: 0 });
   const [isUserLoading, setIsUserLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("home");
   const [myTrips, setMyTrips] = useState([]);
   
+  // ✨ URL 기반 탭 관리 (뒤로가기 지원)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('view') || 'home'; 
+
   const [formData, setFormData] = useState({ 
     destination: "", 
     startDate: "", 
@@ -33,32 +36,25 @@ export default function Home() {
     otherRequirements: "" 
   });
 
-  // 자동완성
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isPlaceSelected, setIsPlaceSelected] = useState(false); 
   const debounceTimeout = useRef(null);
 
-  // 결과 및 로딩
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modifying, setModifying] = useState(false); 
   const [modificationPrompt, setModificationPrompt] = useState(""); 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
 
-  // 지도 인터랙션
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showMobileMap, setShowMobileMap] = useState(false);
 
-  // 광고
   const [generateCount, setGenerateCount] = useState(0); 
   const [showAd, setShowAd] = useState(false);         
   const [adTimer, setAdTimer] = useState(30);          
   const [pendingAction, setPendingAction] = useState(null);
   
-  const router = useRouter();
-
-  // --- 초기화 및 인증 ---
   useEffect(() => {
     const checkUser = async () => {
       setIsUserLoading(true);
@@ -84,19 +80,23 @@ export default function Home() {
 
   useEffect(() => {
     if (activeTab === "mytrip" && user) {
-      axios.get(`${API_BASE_URL}/my-trips?user_id=${user.id}`)
-        .then(res => setMyTrips(res.data.data))
-        .catch(err => console.error(err));
+        fetchMyTrips();
     }
   }, [activeTab, user]);
 
-  // 날짜 변경 시 지도 선택 초기화
+  const fetchMyTrips = async () => {
+      if(!user) return;
+      try {
+        const res = await axios.get(`${API_BASE_URL}/my-trips?user_id=${user.id}`);
+        setMyTrips(res.data.data);
+      } catch(err) { console.error(err); }
+  };
+
   useEffect(() => {
     setSelectedActivity(null);
     setShowMobileMap(false);
   }, [currentDayIndex]);
 
-  // 광고 타이머
   useEffect(() => {
     let interval;
     if (showAd && adTimer > 0) {
@@ -106,15 +106,6 @@ export default function Home() {
     }
     return () => clearInterval(interval);
   }, [showAd, adTimer]);
-
-  // --- 핸들러 함수들 ---
-
-  const handleLogoClick = () => {
-    setActiveTab("home");
-    setResult(null);
-    setCurrentDayIndex(0);
-    setSelectedActivity(null);
-  };
 
   const handleDestinationChange = (e) => {
     const value = e.target.value;
@@ -266,20 +257,18 @@ export default function Home() {
   const getMapUrl = (activities) => {
     if (!activities || activities.length === 0) return null;
 
-    // 1. 클릭한 장소 (Place Mode)
     if (selectedActivity) {
         const query = selectedActivity.place_id 
             ? `place_id:${selectedActivity.place_id}` 
             : encodeURIComponent(selectedActivity.place_name);
-        return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+        return `http://googleusercontent.com/maps.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
     }
 
-    // 2. 전체 경로 (Directions Mode)
     const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
     if (validPlaces.length < 2) {
         if(validPlaces.length === 1) {
             const query = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
-            return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+            return `http://googleusercontent.com/maps.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
         }
         return null;
     }
@@ -292,7 +281,14 @@ export default function Home() {
       const wpList = validPlaces.slice(1, -1).map(p => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name)).join("|");
       waypoints = `&waypoints=${wpList}`;
     }
-    return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
+    return `http://googleusercontent.com/maps.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
+  };
+
+  const handleLogoClick = () => {
+    router.push('/?view=home');
+    setResult(null);
+    setCurrentDayIndex(0);
+    setSelectedActivity(null);
   };
 
   return (
@@ -335,19 +331,19 @@ export default function Home() {
               <span className="text-lg md:text-xl font-extrabold tracking-tight text-slate-900">TripGen</span>
             </div>
             
+            {/* ✨ [통일된 메뉴 그룹] 데스크톱 뷰 */}
             <div className="hidden md:flex gap-1 bg-slate-100/80 p-1.5 rounded-full border border-slate-200">
-                <button onClick={() => setActiveTab("home")} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 ${activeTab==="home" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>일정 생성</button>
-                {user && <button onClick={() => setActiveTab("mytrip")} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 ${activeTab==="mytrip" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>보관함</button>}
+                <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="home" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>일정 생성</button>
+                <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인이 필요합니다.'); }} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="mytrip" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>보관함</button>
+                <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 hover:text-slate-800 hover:bg-white/50 transition-all">건의함</button>
             </div>
-            
-            <button onClick={() => router.push('/board')} className="hidden md:block text-sm font-bold text-slate-500 hover:text-rose-500 transition">건의함</button>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* ✨ [수정됨] 모바일 메뉴에 '건의함' 추가 */}
+            {/* ✨ [모바일 메뉴] 모바일 뷰 */}
             <div className="flex md:hidden gap-1 mr-1">
-               <button onClick={() => setActiveTab("home")} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="home" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>생성</button>
-               {user && <button onClick={() => setActiveTab("mytrip")} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="mytrip" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>보관</button>}
+               <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="home" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>생성</button>
+               <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인 필요'); }} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab==="mytrip" ? "bg-black text-white" : "bg-slate-100 text-slate-600"}`}>보관</button>
                <button onClick={() => router.push('/board')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-slate-100 text-slate-600">건의</button>
             </div>
 
@@ -375,7 +371,7 @@ export default function Home() {
                   {myTrips.map(trip => {
                     const coverImage = getTripCoverImage(trip);
                     return (
-                      <div key={trip.id} className="group cursor-pointer relative" onClick={() => { setResult(trip); setActiveTab("home"); }}>
+                      <div key={trip.id} className="group cursor-pointer relative" onClick={() => { setResult(trip); router.push('/?view=home'); }}>
                         <div className="relative aspect-[4/3] bg-slate-200 rounded-xl overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition-all">
                            <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" onError={(e) => {e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}} />
                            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-slate-900">{trip.duration}</div>
@@ -458,6 +454,7 @@ export default function Home() {
 
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
+                {/* 결과 상단 */}
                 <div className="mb-8 border-b border-slate-100 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-2 md:mb-3 leading-tight">{result.itinerary_data.trip_title}</h1>
@@ -552,5 +549,13 @@ export default function Home() {
       </main>
       <footer className="border-t border-slate-100 py-10 mt-12 bg-slate-50"><div className="max-w-7xl mx-auto px-6 text-center text-slate-400 text-sm">© 2025 TripGen Inc. All rights reserved.</div></footer>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
