@@ -2,53 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ------------------------------------------------------
-   🌤️ LIGHT MODE (기본) - TripGen 감성 밝은 버전
-------------------------------------------------------- */
-
+/* Base theme inspired by the provided snippet */
 :root {
-  --background: #f7f9fc;        /* 부드러운 블루-그레이 */
-  --foreground: #1e293b;        /* 진한 네이비 계열 텍스트 */
-  --foreground-80: rgba(30, 41, 59, 0.8);
-  --foreground-70: rgba(30, 41, 59, 0.7);
-  --foreground-60: rgba(30, 41, 59, 0.6);
-  
-  --primary: #2563eb;           /* TripGen Blue */
-  --secondary: #e2e8f0;         /* 밝은 Slate 200 */
-  --card: #ffffff;              /* 카드 */
-  --border: #cbd5e1;            /* Slate 300 */
-  
-  --navbar: #ffffffcc;          /* 밝은 반투명 배경 */
-  --navbar-border: #e2e8f0;
+  --background: #ffffff;
+  --foreground: #171717;
+  --foreground-80: rgba(23, 23, 23, 0.8);
+  --foreground-70: rgba(23, 23, 23, 0.7);
+  --foreground-60: rgba(23, 23, 23, 0.6);
+
+  --primary: #2563eb;
+  --secondary: #e5e7eb;
+  --card: #ffffff;
+  --border: #e5e7eb;
+
+  --navbar: #ffffffdd;
+  --navbar-border: #e5e7eb;
 }
 
-/* ------------------------------------------------------
-   🌙 DARK MODE - 네이비 감성
-------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --foreground-80: rgba(237, 237, 237, 0.8);
+    --foreground-70: rgba(237, 237, 237, 0.7);
+    --foreground-60: rgba(237, 237, 237, 0.6);
+
+    --primary: #60a5fa;
+    --secondary: #111827;
+    --card: #0f172a;
+    --border: #1f2937;
+
+    --navbar: #0f162b;
+    --navbar-border: #1f2937;
+  }
+}
 
 .dark {
-  --background: #0c0f1d;        /* 거의 검은 네이비 */
-  --foreground: #f3f4f6;        /* neutral-100 */
-  --foreground-80: rgba(243, 244, 246, 0.8);
-  --foreground-70: rgba(243, 244, 246, 0.7);
-  --foreground-60: rgba(243, 244, 246, 0.6);
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --foreground-80: rgba(237, 237, 237, 0.8);
+  --foreground-70: rgba(237, 237, 237, 0.7);
+  --foreground-60: rgba(237, 237, 237, 0.6);
 
-  --primary: #60a5fa;           /* 밝은 블루 400 */
-  --secondary: #1e293b;         /* 짙은 네이비 (버튼/배경) */
-  --card: #1a2234;              /* 차분한 네이비 박스 */
-  --border: #334155;            /* 어두운 라인 */
+  --primary: #60a5fa;
+  --secondary: #111827;
+  --card: #0f172a;
+  --border: #1f2937;
 
-  --navbar: #101528;            /* 상단 네이비 */
-  --navbar-border: #1e293b;
+  --navbar: #0f162b;
+  --navbar-border: #1f2937;
 }
-
-/* ------------------------------------------------------
-   공통 베이스
-------------------------------------------------------- */
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans, "Inter", "Helvetica Neue", Arial, sans-serif);
   transition: background 0.25s ease, color 0.25s ease;
   color-scheme: light;
 }
@@ -57,9 +65,7 @@ body {
   color-scheme: dark;
 }
 
-/* ------------------------------------------------------
-   Tailwind 컬러 단일화 (배경/텍스트/테두리)
-------------------------------------------------------- */
+/* Map legacy Tailwind slate/gray utilities onto theme tokens */
 .bg-white,
 .dark .bg-white {
   background-color: var(--card) !important;
