@@ -2,12 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 기본 배경색 지정 (다크모드 전환 시 부드럽게) */
-body {
-  @apply bg-white text-slate-900 transition-colors duration-300;
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a; /* Slate 900 */
 }
 
-/* 다크모드일 때 기본 스타일 */
-.dark body {
-  @apply bg-slate-900 text-white;
+.dark {
+  --background: #0f172a; /* Slate 900 */
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
