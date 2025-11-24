@@ -3,8 +3,9 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTheme } from "@/components/ThemeProvider"; // ✨ 다크모드 훅
+import { useTheme } from "@/components/ThemeProvider"; // ✨ 다크모드 훅 불러오기
 
+// --- 설정 ---
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -22,7 +23,9 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get('view') || 'home'; 
-  const { theme, toggleTheme } = useTheme(); // ✨ 다크모드 사용
+
+  // ✨ 다크모드 상태 가져오기
+  const { theme, toggleTheme } = useTheme();
 
   const [formData, setFormData] = useState({ 
     destination: "", startDate: "", endDate: "", arrivalTime: "09:00", departureTime: "21:00", otherRequirements: "" 
@@ -41,6 +44,7 @@ function HomeContent() {
 
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showMobileMap, setShowMobileMap] = useState(false);
+
   const [generateCount, setGenerateCount] = useState(0); 
   const [showAd, setShowAd] = useState(false);         
   const [adTimer, setAdTimer] = useState(30);          
@@ -91,7 +95,9 @@ function HomeContent() {
   useEffect(() => {
     let interval;
     if (showAd && adTimer > 0) {
-      interval = setInterval(() => { setAdTimer((prev) => prev - 1); }, 1000);
+      interval = setInterval(() => {
+        setAdTimer((prev) => prev - 1);
+      }, 1000);
     }
     return () => clearInterval(interval);
   }, [showAd, adTimer]);
@@ -107,14 +113,20 @@ function HomeContent() {
     const value = e.target.value;
     setFormData({ ...formData, destination: value });
     setIsPlaceSelected(false); 
+
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+
     if (value.length > 1) {
       debounceTimeout.current = setTimeout(async () => {
         try {
-          const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, { params: { query: value } });
+          const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
+            params: { query: value }
+          });
           setSuggestions(res.data.predictions || []);
           setShowSuggestions(true);
-        } catch (err) { console.error("Autocomplete Error", err); }
+        } catch (err) {
+          console.error("Autocomplete Error", err);
+        }
       }, 300);
     } else {
       setSuggestions([]);
@@ -132,6 +144,7 @@ function HomeContent() {
   const executeGenerate = async () => {
     setLoading(true); setResult(null); setCurrentDayIndex(0); setSelectedActivity(null);
     setShowSuggestions(false);
+
     try {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
       setResult(res.data.data);
@@ -152,11 +165,27 @@ function HomeContent() {
       }
       return;
     }
-    if (!isPlaceSelected) return alert("여행지를 검색 후 목록에서 선택해주세요.");
-    if (formData.startDate && formData.endDate) {
-      if (new Date(formData.startDate) > new Date(formData.endDate)) return alert("마지막 날이 출발일보다 빠를 수 없습니다.");
-      if (formData.startDate === formData.endDate && formData.departureTime <= formData.arrivalTime) return alert("당일치기 여행입니다.\n종료 시간이 시작 시간보다 늦어야 합니다.");
+
+    if (!isPlaceSelected) {
+      alert("여행지를 검색 후 목록에서 선택해주세요.");
+      return;
     }
+
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      if (start > end) {
+        alert("마지막 날이 출발일보다 빠를 수 없습니다.");
+        return;
+      }
+      if (formData.startDate === formData.endDate) {
+        if (formData.departureTime <= formData.arrivalTime) {
+          alert("당일치기 여행입니다.\n종료 시간이 시작 시간보다 늦어야 합니다.");
+          return;
+        }
+      }
+    }
+
     if (generateCount > 0 && generateCount % 3 === 0 && !showAd) {
         setPendingAction(() => executeGenerate);
         setAdTimer(30);
@@ -169,7 +198,10 @@ function HomeContent() {
   const closeAdAndResume = () => {
       setShowAd(false);
       setGenerateCount(prev => prev + 1); 
-      if (pendingAction) { pendingAction(); setPendingAction(null); }
+      if (pendingAction) {
+          pendingAction();
+          setPendingAction(null);
+      }
   };
 
   const handleModify = async () => {
@@ -177,17 +209,31 @@ function HomeContent() {
     setModifying(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/modify-trip`, {
-        trip_id: result.id, currentItinerary: result.itinerary_data, userRequest: modificationPrompt, destination: result.destination, user_id: user?.id
+        trip_id: result.id,
+        currentItinerary: result.itinerary_data,
+        userRequest: modificationPrompt,
+        destination: result.destination,
+        user_id: user?.id
       });
+      
       setResult({ ...result, itinerary_data: res.data.data });
       setModificationPrompt("");
       alert("일정이 수정되었습니다! (자동 저장됨) ✨");
-    } catch (err) { alert("수정 중 오류가 발생했습니다."); } finally { setModifying(false); }
+    } catch (err) {
+      console.error(err);
+      alert("수정 중 오류가 발생했습니다.");
+    } finally {
+      setModifying(false);
+    }
   };
 
   const getTripCoverImage = (trip) => {
     try {
-      for (const day of trip.itinerary_data.itinerary) { for (const activity of day.activities) { if (activity.photoUrl) return activity.photoUrl; } }
+      for (const day of trip.itinerary_data.itinerary) {
+        for (const activity of day.activities) {
+          if (activity.photoUrl) return activity.photoUrl;
+        }
+      }
     } catch (e) {}
     return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
   };
@@ -195,7 +241,9 @@ function HomeContent() {
   const handleShare = (e, tripId) => {
     if (e) e.stopPropagation();
     const shareUrl = `${window.location.origin}/share/${tripId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => alert("공유 링크가 복사되었습니다! 🔗")).catch(() => alert("링크 복사 실패"));
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert("공유 링크가 복사되었습니다! 🔗");
+    }).catch(() => alert("링크 복사 실패"));
   };
 
   const handleDelete = async (e, tripId) => {
@@ -210,10 +258,14 @@ function HomeContent() {
 
   const getMapUrl = (activities) => {
     if (!activities || activities.length === 0) return null;
+
     if (selectedActivity) {
-        const query = selectedActivity.place_id ? `place_id:${selectedActivity.place_id}` : encodeURIComponent(selectedActivity.place_name);
+        const query = selectedActivity.place_id 
+            ? `place_id:${selectedActivity.place_id}` 
+            : encodeURIComponent(selectedActivity.place_name);
         return `http://googleusercontent.com/maps.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
     }
+
     const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
     if (validPlaces.length < 2) {
         if(validPlaces.length === 1) {
@@ -222,8 +274,10 @@ function HomeContent() {
         }
         return null;
     }
+
     const origin = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
     const destination = validPlaces[validPlaces.length-1].place_id ? `place_id:${validPlaces[validPlaces.length-1].place_id}` : encodeURIComponent(validPlaces[validPlaces.length-1].place_name);
+    
     let waypoints = "";
     if (validPlaces.length > 2) {
       const wpList = validPlaces.slice(1, -1).map(p => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name)).join("|");
@@ -244,8 +298,14 @@ function HomeContent() {
                 <span className="text-rose-500 font-black text-lg">{adTimer}초</span>
             </div>
             <div className="aspect-video bg-black relative">
-               <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/fEErySYqItI?autoplay=1&controls=0&disablekb=1&modestbranding=1`} title="Ad Video" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="pointer-events-none"></iframe>
-               <div className="absolute inset-0"></div>
+               <iframe 
+                  width="100%" height="100%" 
+                  src={`https://www.youtube.com/embed/fEErySYqItI?autoplay=1&controls=0&disablekb=1&modestbranding=1`} 
+                  title="Ad Video" frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen className="pointer-events-none"
+                ></iframe>
+                <div className="absolute inset-0"></div>
             </div>
             <div className="p-6 text-center">
               <p className="text-slate-600 dark:text-slate-300 mb-2 font-bold text-lg">광고를 30초간 시청해주시면<br/><span className="text-rose-500">여행 일정을 무료로 생성</span>해 드립니다! 🎁</p>
@@ -266,17 +326,18 @@ function HomeContent() {
               <span className="text-lg md:text-xl font-extrabold tracking-tight text-rose-500">TripGen</span>
             </div>
             
-            <div className="hidden md:flex items-center gap-3">
-              {/* 일정 그룹 */}
-              <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="home" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>일정 생성</button>
-                  <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인이 필요합니다.'); }} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="mytrip" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>보관함</button>
-              </div>
-              {/* 커뮤니티 그룹 */}
-              <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">공유게시판</button>
-                  <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">건의함</button>
-              </div>
+            {/* 데스크톱 메뉴 */}
+            <div className="hidden md:flex items-center gap-4">
+                {/* 그룹 1: 일정 */}
+                <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+                    <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="home" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>일정 생성</button>
+                    <button onClick={() => { if(user) router.push('/?view=mytrip'); else alert('로그인이 필요합니다.'); }} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab==="mytrip" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>보관함</button>
+                </div>
+                {/* 그룹 2: 커뮤니티 */}
+                <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+                    <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">공유게시판</button>
+                    <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">건의함</button>
+                </div>
             </div>
           </div>
 
@@ -324,6 +385,7 @@ function HomeContent() {
                         <div className="relative aspect-[4/3] bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition-all">
                            <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" onError={(e) => {e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}} />
                            <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-slate-900 dark:text-white">{trip.duration}</div>
+                           
                            <div className="absolute bottom-3 right-3 flex gap-2">
                               <button onClick={(e) => handleShare(e, trip.id)} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 rounded-full shadow-md hover:text-blue-600 transition hover:scale-110" title="공유">🔗</button>
                               <button onClick={(e) => handleDelete(e, trip.id)} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white p-2 rounded-full shadow-md hover:text-rose-500 transition hover:scale-110" title="삭제">🗑️</button>
@@ -359,7 +421,7 @@ function HomeContent() {
                         <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider ml-1">여행지</label>
                         <input 
                           placeholder="도시나 지역 검색" 
-                          className={`w-full bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-950 focus:bg-white dark:focus:bg-black border p-4 rounded-xl text-lg font-bold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-500'}`} 
+                          className={`w-full bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-950 focus:bg-white dark:focus:bg-black border p-4 rounded-xl text-lg font-bold placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-500'}`} 
                           value={formData.destination}
                           onChange={handleDestinationChange}
                           required 
@@ -402,23 +464,24 @@ function HomeContent() {
 
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
-                <div className="mb-8 border-b border-slate-100 dark:border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {/* 결과 화면 상단 */}
+                <div className="mb-10 border-b border-slate-100 dark:border-slate-800 pb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div>
-                    <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white mb-2 md:mb-3 leading-tight">{result.itinerary_data.trip_title}</h1>
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400">
-                      <span className="bg-slate-50 dark:bg-slate-800 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1.5"><span className="text-rose-500">🗓️</span> {result.duration}</span>
-                      <span className="bg-slate-50 dark:bg-slate-800 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1.5"><span className="text-rose-500">📍</span> {result.destination}</span>
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-3">{result.itinerary_data.trip_title}</h1>
+                    <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-500 dark:text-slate-400">
+                      <span className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1.5"><span className="text-rose-500">🗓️</span> {result.duration}</span>
+                      <span className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1.5"><span className="text-rose-500">📍</span> {result.destination}</span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 w-full md:w-auto">
-                    <button onClick={(e) => handleShare(e, result.id)} className="flex-1 md:flex-none px-4 md:px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 text-sm font-bold transition shadow-md flex items-center justify-center gap-2"><span>🔗</span> 공유</button>
-                    <button onClick={handleLogoClick} className="flex-1 md:flex-none px-4 md:px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-600 dark:text-slate-300 transition">새 검색</button>
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button onClick={(e) => handleShare(e, result.id)} className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 text-sm font-bold transition shadow-md flex items-center justify-center gap-2"><span>🔗</span> 공유하기</button>
+                    <button onClick={handleLogoClick} className="flex-1 md:flex-none px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-600 dark:text-slate-300 transition">새로운 검색</button>
                   </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-8 h-auto lg:h-[calc(100vh-200px)] min-h-[600px]">
-                  
+                {/* 메인 컨텐츠 */}
+                <div className="flex flex-col lg:flex-row gap-10 h-[calc(100vh-200px)] min-h-[600px]">
                   <div className={`lg:w-[45%] flex flex-col h-full ${showMobileMap ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide px-1">
                       {result.itinerary_data.itinerary.map((day, idx) => (
@@ -456,6 +519,14 @@ function HomeContent() {
                             ))}
                         </div>
                     </div>
+
+                    <div className="mt-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-lg sticky bottom-0 z-20">
+                      <label className="text-xs font-bold text-slate-500 mb-2 block flex items-center gap-1"><span>🤖</span> AI에게 일정 수정을 요청해보세요</label>
+                      <div className="flex gap-2">
+                        <input type="text" value={modificationPrompt} onChange={(e) => setModificationPrompt(e.target.value)} placeholder="예: 점심을 초밥집으로 바꿔줘" className="flex-1 bg-slate-50 dark:bg-slate-900 border-none p-3 rounded-xl text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 transition-all" onKeyDown={(e) => e.key === 'Enter' && !modifying && handleModify()} />
+                        <button onClick={handleModify} disabled={modifying || !modificationPrompt.trim()} className="bg-rose-500 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center shadow-sm">{modifying ? <span className="animate-spin">⏳</span> : "수정"}</button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className={`lg:w-[55%] h-full bg-slate-100 dark:bg-slate-800 lg:rounded-[2rem] overflow-hidden shadow-inner border border-slate-200 dark:border-slate-700 lg:sticky lg:top-24 ${showMobileMap ? 'fixed inset-0 z-50 rounded-none' : 'hidden lg:block relative'}`}>
@@ -470,12 +541,14 @@ function HomeContent() {
 
                 </div>
                 
+                {/* 모바일용 지도 버튼 */}
                 {!showMobileMap && (
                     <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
                         <button onClick={() => setShowMobileMap(true)} className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-2 hover:scale-105 transition">🗺️ 지도 보기</button>
                     </div>
                 )}
 
+                {/* 수정 요청 바 (모바일 하단 고정) */}
                 {!showMobileMap && (
                     <div className="fixed lg:static bottom-0 left-0 w-full bg-white dark:bg-slate-800 border-t lg:border border-slate-200 dark:border-slate-700 p-4 rounded-t-2xl lg:rounded-2xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30">
                       <div className="max-w-6xl mx-auto lg:max-w-none">
