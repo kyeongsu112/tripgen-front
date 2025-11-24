@@ -1,6 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import Script from 'next/script' // ✨ [추가 1] Script 컴포넌트 불러오기
+import Script from 'next/script'
+import { ThemeProvider } from '@/components/ThemeProvider' // 다크모드 설정 유지
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,16 +14,19 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <head>
-        {<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1053308341441139"
-     crossorigin="anonymous"></script>}
+        {/* 구글 애드센스 스크립트 (올바른 ID 적용됨) */}
         <Script
           async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ID_HERE`} // ⚠️ 여기에 본인의 ca-pub- ID를 넣으세요
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1053308341441139"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }
