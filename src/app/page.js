@@ -274,7 +274,7 @@ export default function Home() {
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider ml-1">여행지</label>
                         <input 
-                          placeholder="도시나 지역 검색 (예: 도쿄)" 
+                          placeholder="도시나 지역 검색" 
                           className={`w-full bg-slate-50 hover:bg-slate-100 focus:bg-white border p-4 rounded-xl text-lg font-semibold placeholder:text-slate-400 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-none ring-1 ring-transparent focus:ring-slate-900'}`} 
                           value={formData.destination}
                           onChange={handleDestinationChange}
