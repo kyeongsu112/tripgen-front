@@ -17,6 +17,10 @@ const supabase = createClient(
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+if (!GOOGLE_MAPS_API_KEY) {
+  console.error("⚠️ Google Maps API Key is missing! Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env.local file.");
+}
+
 function HomeContent() {
   const [user, setUser] = useState(null);
   const [usageInfo, setUsageInfo] = useState({ tier: 'free', usage_count: 0 });
@@ -526,10 +530,15 @@ function HomeContent() {
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide px-1">
                       {result.itinerary_data.itinerary.map((day, idx) => {
                         // 날짜 계산 (시작일 + idx)
-                        const dateObj = new Date(formData.startDate);
-                        dateObj.setDate(dateObj.getDate() + idx);
-                        const dateStr = dateObj.toISOString().split('T')[0];
-                        const weather = weatherData[dateStr];
+                        let weather = null;
+                        if (formData.startDate) {
+                          const dateObj = new Date(formData.startDate);
+                          if (!isNaN(dateObj.getTime())) {
+                            dateObj.setDate(dateObj.getDate() + idx);
+                            const dateStr = dateObj.toISOString().split('T')[0];
+                            weather = weatherData[dateStr];
+                          }
+                        }
 
                         return (
                           <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-2 ${currentDayIndex === idx ? "bg-foreground text-background scale-105" : "bg-card border border-border text-foreground/60 hover:bg-secondary"}`}>
@@ -584,7 +593,13 @@ function HomeContent() {
                   </div>
 
                   <div className={`lg:w-[55%] h-full bg-secondary lg:rounded-[2rem] overflow-hidden shadow-inner border border-border lg:sticky lg:top-24 ${showMobileMap ? 'fixed inset-0 z-50 rounded-none' : 'hidden lg:block relative'}`}>
-                    {getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
+                    {!GOOGLE_MAPS_API_KEY ? (
+                      <div className="flex h-full flex-col items-center justify-center text-rose-500 gap-2 p-4 text-center">
+                        <span className="text-4xl">⚠️</span>
+                        <span className="font-bold">Google Maps API Key가 설정되지 않았습니다.</span>
+                        <span className="text-sm text-foreground/60">.env.local 파일을 확인해주세요.</span>
+                      </div>
+                    ) : getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities) ? (
                       <>
                         <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={getMapUrl(result.itinerary_data.itinerary[currentDayIndex].activities)} className="grayscale-[20%] contrast-[1.1] hover:grayscale-0 transition-all duration-500"></iframe>
                         {showMobileMap && <button onClick={() => setShowMobileMap(false)} className="absolute top-4 right-4 bg-card text-foreground p-3 rounded-full shadow-lg font-bold z-50">✕ 닫기</button>}
