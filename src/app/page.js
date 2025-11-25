@@ -164,14 +164,43 @@ function HomeContent() {
   };
 
   const fetchWeather = async (destination, startDate, endDate) => {
-    try {
-      // 1. Google Geocoding API로 위도/경도 가져오기
-      const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`);
-      if (!geoRes.data.results.length) return;
+    console.log("🌤️ fetchWeather called with:", { destination, startDate, endDate, keyExists: !!GOOGLE_MAPS_API_KEY });
 
-      const { lat, lng } = geoRes.data.results[0].geometry.location;
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error("❌ Google Maps API Key is missing in fetchWeather");
+      return;
+    }
+
+    try {
+      // 1. Google Places API (New)로 위도/경도 가져오기 (Geocoding API 대신 사용)
+      // Places API가 이미 활성화되어 있으므로 이를 사용합니다.
+      console.log("📍 Fetching coordinates using Places API...");
+      const placesUrl = `https://places.googleapis.com/v1/places:searchText`;
+
+      const placesRes = await axios.post(placesUrl, {
+        textQuery: destination
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+          'X-Goog-FieldMask': 'places.location'
+        }
+      });
+
+      console.log("📍 Places API response:", placesRes.data);
+
+      if (!placesRes.data.places || !placesRes.data.places.length) {
+        console.warn("⚠️ No results found for destination:", destination);
+        return;
+      }
+
+      const { latitude, longitude } = placesRes.data.places[0].location;
+      const lat = latitude;
+      const lng = longitude;
+      console.log("📍 Coordinates found:", { lat, lng });
 
       // 2. Open-Meteo API로 날씨 가져오기
+      console.log("🌦️ Fetching weather from Open-Meteo...");
       const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast`, {
         params: {
           latitude: lat,
@@ -182,6 +211,7 @@ function HomeContent() {
           timezone: "auto"
         }
       });
+      console.log("🌦️ Weather response:", weatherRes.data);
 
       const daily = weatherRes.data.daily;
       const weatherMap = {};
@@ -195,9 +225,13 @@ function HomeContent() {
         };
       });
 
+      console.log("✅ Weather map created:", weatherMap);
       setWeatherData(weatherMap);
     } catch (err) {
-      console.error("Weather fetch error:", err);
+      console.error("❌ Weather fetch error:", err);
+      if (err.response) {
+        console.error("Error response:", err.response.data);
+      }
     }
   };
 
@@ -326,14 +360,14 @@ function HomeContent() {
       const query = selectedActivity.place_id
         ? `place_id:${selectedActivity.place_id}`
         : encodeURIComponent(selectedActivity.place_name);
-      return `http://googleusercontent.com/maps.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+      return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
     }
 
     const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
     if (validPlaces.length < 2) {
       if (validPlaces.length === 1) {
         const query = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
-        return `http://googleusercontent.com/maps.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+        return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
       }
       return null;
     }
@@ -346,7 +380,7 @@ function HomeContent() {
       const wpList = validPlaces.slice(1, -1).map(p => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name)).join("|");
       waypoints = `&waypoints=${wpList}`;
     }
-    return `http://googleusercontent.com/maps.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
+    return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
   if (isUserLoading) {
