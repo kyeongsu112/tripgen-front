@@ -15,7 +15,7 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
     };
 
     const handleNav = (path) => {
-        if ((path === '/?view=mytrip' || path === '/?view=home') && !user) {
+        if ((path === '/?view=mytrip' || path === '/?view=home' || path === '/community' || path === '/board') && !user) {
             alert("로그인이 필요한 서비스입니다.");
             return;
         }
@@ -35,8 +35,8 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                     <div className="hidden md:flex items-center gap-1 bg-background/60 p-1.5 rounded-full border border-border">
                         <button onClick={() => handleNav('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "home" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>일정 생성</button>
                         <button onClick={() => handleNav('/?view=mytrip')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "mytrip" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>보관함</button>
-                        <button onClick={() => router.push('/community')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "community" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>공유게시판</button>
-                        <button onClick={() => router.push('/board')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "board" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>건의함</button>
+                        <button onClick={() => handleNav('/community')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "community" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>공유게시판</button>
+                        <button onClick={() => handleNav('/board')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "board" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>건의함</button>
                     </div>
                 </div>
 
@@ -54,8 +54,8 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                     <div className="flex md:hidden overflow-x-auto gap-2 mr-1 max-w-[50vw] scrollbar-hide mask-linear-fade touch-pan-x">
                         <button onClick={() => handleNav('/?view=home')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
                         <button onClick={() => handleNav('/?view=mytrip')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
-                        <button onClick={() => router.push('/community')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "community" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>공유</button>
-                        <button onClick={() => router.push('/board')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "board" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>건의</button>
+                        <button onClick={() => handleNav('/community')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "community" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>공유</button>
+                        <button onClick={() => handleNav('/board')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "board" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>건의</button>
                     </div>
 
                     {showUserControls && (
