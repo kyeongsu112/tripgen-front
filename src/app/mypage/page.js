@@ -197,28 +197,28 @@ export default function MyPage() {
     <div className="min-h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 transition-colors">
 
       {/* ✨ 헤더 (다크모드 적용) */}
-      <Header activeTab="mypage" />
+      <Header user={user} activeTab="mypage" />
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full">
-        <div className="mb-10">
-          <h1 className="text-4xl font-black text-foreground mb-3">마이페이지</h1>
-          <p className="text-foreground/60 text-lg font-medium">나의 여행 기록과 계정 정보를 관리하세요.</p>
+        <div className="mb-8 md:mb-10">
+          <h1 className="text-2xl md:text-4xl font-black text-foreground mb-2 md:mb-3">마이페이지</h1>
+          <p className="text-foreground/60 text-sm md:text-lg font-medium">나의 여행 기록과 계정 정보를 관리하세요.</p>
         </div>
 
         {/* 프로필 섹션 */}
-        <div className="bg-card rounded-3xl border border-border p-8 mb-12 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-6 w-full md:w-auto">
+        <div className="bg-card rounded-3xl border border-border p-6 md:p-8 mb-8 md:mb-12 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
 
             {/* 프로필 사진 업로드 */}
             <div className="relative group">
               <label htmlFor="avatar-upload" className="cursor-pointer">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-background shadow-md bg-secondary flex items-center justify-center relative">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-background shadow-md bg-secondary flex items-center justify-center relative">
                   {uploading ? (
                     <span className="text-xs font-bold text-foreground/40">UP..</span>
                   ) : avatarUrl ? (
                     <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-4xl">👤</span>
+                    <span className="text-3xl md:text-4xl">👤</span>
                   )}
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-xl">📷</span>
@@ -237,7 +237,7 @@ export default function MyPage() {
                       type="text"
                       value={newNickname}
                       onChange={(e) => setNewNickname(e.target.value)}
-                      className="border border-border rounded-lg px-3 py-1 text-lg font-bold text-foreground outline-none focus:border-rose-500 bg-transparent w-40"
+                      className="border border-border rounded-lg px-3 py-1 text-base md:text-lg font-bold text-foreground outline-none focus:border-rose-500 bg-transparent w-32 md:w-40"
                       autoFocus
                     />
                     <button onClick={handleUpdateProfile} className="w-8 h-8 flex items-center justify-center bg-rose-500 text-white rounded-full hover:bg-rose-600 transition shadow-sm">✓</button>
@@ -245,7 +245,7 @@ export default function MyPage() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 group">
-                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <h1 className="text-lg md:text-2xl font-bold text-foreground flex items-center gap-2">
                       안녕하세요, <span className="text-rose-500">{nickname}</span>님!
                     </h1>
                     <button
@@ -262,18 +262,18 @@ export default function MyPage() {
                 <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border border-transparent ${badgeColor}`}>
                   {tierName}
                 </span>
-                <p className="text-foreground/60 text-sm font-medium">{user.email}</p>
+                <p className="text-foreground/60 text-xs md:text-sm font-medium">{user.email}</p>
               </div>
             </div>
           </div>
 
           <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={handleLogout} className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-secondary hover:bg-border text-foreground font-bold transition">로그아웃</button>
-            <button className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-lg shadow-rose-200 dark:shadow-none transition">프로필 수정</button>
+            <button onClick={handleLogout} className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-secondary hover:bg-border text-foreground font-bold transition text-sm md:text-base">로그아웃</button>
+            <button className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-lg shadow-rose-200 dark:shadow-none transition text-sm md:text-base">프로필 수정</button>
           </div>
         </div>
 
-        <div className="bg-card px-6 py-3 rounded-xl border border-border w-full md:w-64 mb-12">
+        <div className="bg-card px-6 py-3 rounded-xl border border-border w-full md:w-64 mb-8 md:mb-12">
           <div className="flex justify-between text-xs font-bold text-foreground/60 mb-2">
             <span>이번 달 생성</span>
             <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit}</span>
@@ -284,10 +284,10 @@ export default function MyPage() {
         </div>
 
         {/* 내 여행 목록 */}
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-foreground">내 여행 보관함 <span className="text-rose-500 ml-1 text-lg">{myTrips.length}</span></h2>
-            <button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-bold transition shadow-md">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">내 여행 보관함 <span className="text-rose-500 ml-1 text-base md:text-lg">{myTrips.length}</span></h2>
+            <button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 md:px-5 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition shadow-md">
               + 새 여행 만들기
             </button>
           </div>
@@ -295,13 +295,13 @@ export default function MyPage() {
           {loading ? (
             <div className="py-20 text-center text-foreground/40 font-bold animate-pulse">데이터를 불러오는 중입니다...</div>
           ) : myTrips.length === 0 ? (
-            <div className="border-2 border-dashed border-border rounded-3xl p-24 text-center bg-secondary/50">
-              <div className="text-5xl mb-4 opacity-20">🗺️</div>
-              <p className="text-foreground/60 font-medium mb-6">아직 저장된 여행 일정이 없습니다.</p>
-              <button onClick={() => router.push('/')} className="text-rose-500 font-bold hover:underline">첫 번째 여행을 계획해보세요</button>
+            <div className="border-2 border-dashed border-border rounded-3xl p-12 md:p-24 text-center bg-secondary/50">
+              <div className="text-4xl md:text-5xl mb-4 opacity-20">🗺️</div>
+              <p className="text-foreground/60 font-medium mb-6 text-sm md:text-base">아직 저장된 여행 일정이 없습니다.</p>
+              <button onClick={() => router.push('/')} className="text-rose-500 font-bold hover:underline text-sm md:text-base">첫 번째 여행을 계획해보세요</button>
             </div>
           ) : (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
               {myTrips.map(trip => {
                 const coverImage = getTripCoverImage(trip);
                 return (
@@ -312,7 +312,7 @@ export default function MyPage() {
                     </div>
                     <div className="p-5">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-xl text-foreground truncate pr-2 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
+                        <h3 className="font-bold text-lg md:text-xl text-foreground truncate pr-2 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-foreground/60 font-medium">
                         <span className="flex items-center gap-1"><span>📍</span> {trip.destination}</span>
@@ -340,11 +340,11 @@ export default function MyPage() {
           </button>
         </div>
 
-      </main>
+      </main >
 
       <footer className="py-8 text-center text-foreground/40 text-xs border-t border-border">
         © 2025 TripGen Inc. All rights reserved.
       </footer>
-    </div>
+    </div >
   );
 }

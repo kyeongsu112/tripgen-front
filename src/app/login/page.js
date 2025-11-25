@@ -96,11 +96,16 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
 
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-foreground mb-3">
-              {mode === 'login' ? '다시 만나서 반가워요!' : '여행의 시작,'}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-rose-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-rose-200 dark:shadow-none">
+                ✈️
+              </div>
+            </div>
+            <h1 className="text-3xl font-black text-foreground mb-2 tracking-tight">
+              TripGen
             </h1>
-            <p className="text-foreground/60 text-lg">
-              {mode === 'login' ? 'TripGen으로 여행을 계속하세요.' : 'TripGen과 함께 완벽한 일정을 만들어보세요.'}
+            <p className="text-foreground/60 text-lg font-medium">
+              {mode === 'login' ? '여행의 시작, 여기서부터.' : '완벽한 여행을 위한 첫 걸음.'}
             </p>
           </div>
 

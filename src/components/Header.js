@@ -15,7 +15,7 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
     };
 
     const handleNav = (path) => {
-        if (path === '/?view=mytrip' && !user) {
+        if ((path === '/?view=mytrip' || path === '/?view=home') && !user) {
             alert("로그인이 필요한 서비스입니다.");
             return;
         }
@@ -32,17 +32,11 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                     </div>
 
                     {/* 데스크톱 메뉴 */}
-                    <div className="hidden md:flex items-center gap-4">
-                        {/* 그룹 1: 일정 */}
-                        <div className="flex gap-1 bg-background/60 p-1.5 rounded-full border border-border">
-                            <button onClick={() => router.push('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "home" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>일정 생성</button>
-                            <button onClick={() => handleNav('/?view=mytrip')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "mytrip" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>보관함</button>
-                        </div>
-                        {/* 그룹 2: 커뮤니티 */}
-                        <div className="flex gap-1 bg-background/60 p-1.5 rounded-full border border-border">
-                            <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-foreground/60 hover:text-foreground hover:bg-card transition-all">공유게시판</button>
-                            <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-foreground/60 hover:text-foreground hover:bg-card transition-all">건의함</button>
-                        </div>
+                    <div className="hidden md:flex items-center gap-1 bg-background/60 p-1.5 rounded-full border border-border">
+                        <button onClick={() => handleNav('/?view=home')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "home" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>일정 생성</button>
+                        <button onClick={() => handleNav('/?view=mytrip')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "mytrip" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>보관함</button>
+                        <button onClick={() => router.push('/community')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "community" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>공유게시판</button>
+                        <button onClick={() => router.push('/board')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${activeTab === "board" ? "bg-card text-primary shadow-sm" : "text-foreground/50 hover:text-foreground"}`}>건의함</button>
                     </div>
                 </div>
 
@@ -56,22 +50,24 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                         {theme === 'light' ? '🌙' : '☀️'}
                     </button>
 
-                    {/* 모바일 메뉴 */}
-                    <div className="flex md:hidden gap-1 mr-1">
-                        <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab === "home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
-                        <button onClick={() => handleNav('/?view=mytrip')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab === "mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
-                        <button onClick={() => router.push('/community')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-secondary text-foreground/70">공유</button>
-                        <button onClick={() => router.push('/board')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-secondary text-foreground/70">건의</button>
+                    {/* 모바일 메뉴 (스크롤 가능) */}
+                    <div className="flex md:hidden overflow-x-auto gap-2 mr-1 max-w-[50vw] scrollbar-hide mask-linear-fade touch-pan-x">
+                        <button onClick={() => handleNav('/?view=home')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
+                        <button onClick={() => handleNav('/?view=mytrip')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
+                        <button onClick={() => router.push('/community')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "community" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>공유</button>
+                        <button onClick={() => router.push('/board')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "board" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>건의</button>
                     </div>
 
                     {showUserControls && (
                         user ? (
-                            <div className="flex items-center gap-2 md:gap-3">
-                                <button onClick={() => router.push('/mypage')} className="flex items-center gap-2 bg-card border border-border rounded-full pl-2 pr-1 py-1 hover:shadow-md transition duration-200">
-                                    <span className="text-xs font-bold text-foreground/80 ml-1 hidden sm:inline">MY</span>
-                                    <div className="w-7 h-7 bg-primary rounded-full text-white flex items-center justify-center text-[10px]">👤</div>
-                                </button>
-                            </div>
+                            activeTab !== 'mypage' && (
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <button onClick={() => router.push('/mypage')} className="flex items-center gap-2 bg-card border border-border rounded-full pl-2 pr-1 py-1 hover:shadow-md transition duration-200">
+                                        <span className="text-xs font-bold text-foreground/80 ml-1 hidden sm:inline">MY</span>
+                                        <div className="w-7 h-7 bg-primary rounded-full text-white flex items-center justify-center text-[10px]">👤</div>
+                                    </button>
+                                </div>
+                            )
                         ) : (
                             <button onClick={() => router.push('/login')} className="text-sm font-bold text-foreground/80 hover:text-rose-500 transition px-2">로그인</button>
                         )

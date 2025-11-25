@@ -58,6 +58,9 @@ function HomeContent() {
       if (session) {
         setUser(session.user);
         fetchUsageInfo(session.user.id);
+      } else {
+        router.replace('/login');
+        return;
       }
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
@@ -287,6 +290,10 @@ function HomeContent() {
     return `http://googleusercontent.com/maps.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
+  if (isUserLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans transition-colors duration-300">
       {/* 광고 모달 (다크모드 적용) */}
@@ -377,7 +384,7 @@ function HomeContent() {
                         <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">여행지</label>
                         <input
                           placeholder="도시나 지역 검색"
-                          className={`w-full bg-secondary hover:bg-secondary/80 focus:bg-card border p-4 rounded-xl text-lg font-bold placeholder:text-foreground/40 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-border focus:ring-2 focus:ring-foreground/20'}`} value={formData.destination}
+                          className={`w-full bg-secondary hover:bg-secondary/80 focus:bg-card border p-3 md:p-4 rounded-xl text-base md:text-lg font-bold placeholder:text-foreground/40 outline-none transition-all ${!isPlaceSelected && formData.destination ? 'border-red-300 focus:ring-red-200' : 'border-border focus:ring-2 focus:ring-foreground/20'}`} value={formData.destination}
                           onChange={handleDestinationChange}
                           required
                         />
@@ -390,16 +397,16 @@ function HomeContent() {
                           </div>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">출발일</label><input type="date" value={formData.startDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-3 md:p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">마지막 날</label><input type="date" min={formData.startDate} value={formData.endDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-3 md:p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">출발일</label><input type="date" value={formData.startDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-2.5 md:p-4 rounded-xl font-bold text-sm md:text-base text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">마지막 날</label><input type="date" min={formData.startDate} value={formData.endDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-2.5 md:p-4 rounded-xl font-bold text-sm md:text-base text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required /></div>
                       </div>
                     </div>
 
                     <div className="p-5 md:p-6 bg-secondary/50 rounded-2xl border border-border">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-3 rounded-xl text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-3 rounded-xl text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
                       </div>
                       <div className="mt-6 space-y-2">
                         <label className="text-xs font-bold text-foreground/60 ml-1">기타 요구사항 (선택)</label>
