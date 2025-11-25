@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-//const API_BASE_URL = "http://localhost:8000/api"; // 로컬 테스트용
+// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트용
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -34,7 +34,7 @@ function HomeContent() {
 
 
   const [formData, setFormData] = useState({
-    destination: "", startDate: "", endDate: "", arrivalTime: "09:00", departureTime: "21:00", otherRequirements: ""
+    destination: "", startDate: "", endDate: "", arrivalTime: "09:00", departureTime: "21:00", travelers: 1, budget: "", otherRequirements: ""
   });
 
   const [suggestions, setSuggestions] = useState([]);
@@ -164,17 +164,10 @@ function HomeContent() {
   };
 
   const fetchWeather = async (destination, startDate, endDate) => {
-    console.log("🌤️ fetchWeather called with:", { destination, startDate, endDate, keyExists: !!GOOGLE_MAPS_API_KEY });
-
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("❌ Google Maps API Key is missing in fetchWeather");
-      return;
-    }
+    if (!GOOGLE_MAPS_API_KEY) return;
 
     try {
-      // 1. Google Places API (New)로 위도/경도 가져오기 (Geocoding API 대신 사용)
-      // Places API가 이미 활성화되어 있으므로 이를 사용합니다.
-      console.log("📍 Fetching coordinates using Places API...");
+      // 1. Google Places API (New)로 위도/경도 가져오기
       const placesUrl = `https://places.googleapis.com/v1/places:searchText`;
 
       const placesRes = await axios.post(placesUrl, {
@@ -187,36 +180,23 @@ function HomeContent() {
         }
       });
 
-      console.log("📍 Places API response:", placesRes.data);
-
-      if (!placesRes.data.places || !placesRes.data.places.length) {
-        console.warn("⚠️ No results found for destination:", destination);
-        return;
-      }
+      if (!placesRes.data.places || !placesRes.data.places.length) return;
 
       const { latitude, longitude } = placesRes.data.places[0].location;
-      const lat = latitude;
-      const lng = longitude;
-      console.log("📍 Coordinates found:", { lat, lng });
 
       // 2. Open-Meteo API로 날씨 가져오기
-      console.log("🌦️ Fetching weather from Open-Meteo...");
       const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast`, {
         params: {
-          latitude: lat,
-          longitude: lng,
+          latitude: latitude,
+          longitude: longitude,
           daily: "weather_code,temperature_2m_max,temperature_2m_min",
           start_date: startDate,
           end_date: endDate,
           timezone: "auto"
         }
       });
-      console.log("🌦️ Weather response:", weatherRes.data);
 
-      if (!weatherRes.data.daily) {
-        console.error("❌ Open-Meteo response missing 'daily' data:", weatherRes.data);
-        return;
-      }
+      if (!weatherRes.data.daily) return;
 
       const daily = weatherRes.data.daily;
       const weatherMap = {};
@@ -230,13 +210,9 @@ function HomeContent() {
         };
       });
 
-      console.log("✅ Weather map created:", weatherMap);
       setWeatherData(weatherMap);
     } catch (err) {
-      console.error("❌ Weather fetch error:", err);
-      if (err.response) {
-        console.error("Error response:", err.response.data);
-      }
+      console.error("Weather fetch error:", err);
     }
   };
 
@@ -529,6 +505,33 @@ function HomeContent() {
                         <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
                         <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
                       </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-foreground/60 ml-1">여행 인원</label>
+                          <div className="flex items-center bg-card border border-border rounded-xl overflow-hidden">
+                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, travelers: Math.max(1, prev.travelers - 1) }))} className="px-4 py-3 hover:bg-secondary text-foreground font-bold">-</button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={formData.travelers}
+                              className="w-full text-center bg-transparent font-bold text-foreground outline-none"
+                              onChange={e => setFormData({ ...formData, travelers: parseInt(e.target.value) || 1 })}
+                            />
+                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, travelers: prev.travelers + 1 }))} className="px-4 py-3 hover:bg-secondary text-foreground font-bold">+</button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-foreground/60 ml-1">예산 (선택)</label>
+                          <input
+                            type="text"
+                            placeholder="예: 50만원, 1000달러"
+                            value={formData.budget}
+                            className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50"
+                            onChange={e => setFormData({ ...formData, budget: e.target.value })}
+                          />
+                        </div>
+                      </div>
                       <div className="mt-6 space-y-2">
                         <label className="text-xs font-bold text-foreground/60 ml-1">기타 요구사항 (선택)</label>
                         <textarea placeholder="예: 친구와 함께하는 힐링 여행, 해산물은 못 먹어요." className="w-full bg-card border border-border p-4 rounded-xl text-sm font-medium text-foreground outline-none focus:border-foreground/50 h-24 resize-none" onChange={e => setFormData({ ...formData, otherRequirements: e.target.value })} />
@@ -582,7 +585,7 @@ function HomeContent() {
                         return (
                           <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-2 ${currentDayIndex === idx ? "bg-foreground text-background scale-105" : "bg-card border border-border text-foreground/60 hover:bg-secondary"}`}>
                             <span>{day.day}일차</span>
-                            {weather && <span className="text-xs opacity-80">{weather.icon} {weather.max}°</span>}
+                            {weather && <span className="text-xs opacity-80">{weather.icon} {weather.min}°/{weather.max}°</span>}
                           </button>
                         );
                       })}
