@@ -4,6 +4,7 @@ import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import Calendar from "@/components/Calendar";
 
 
 // --- 설정 ---
@@ -50,6 +51,8 @@ function HomeContent() {
   const [showAd, setShowAd] = useState(false);
   const [adTimer, setAdTimer] = useState(30);
   const [pendingAction, setPendingAction] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [weatherData, setWeatherData] = useState({});
 
   useEffect(() => {
     const checkUser = async () => {
@@ -145,6 +148,55 @@ function HomeContent() {
     setIsPlaceSelected(true);
   };
 
+  const getWeatherIcon = (code) => {
+    if (code === 0) return "☀️"; // 맑음
+    if (code >= 1 && code <= 3) return "⛅"; // 구름 조금
+    if (code >= 45 && code <= 48) return "🌫️"; // 안개
+    if (code >= 51 && code <= 67) return "🌧️"; // 비
+    if (code >= 71 && code <= 77) return "❄️"; // 눈
+    if (code >= 80 && code <= 82) return "🌦️"; // 소나기
+    if (code >= 95 && code <= 99) return "⛈️"; // 뇌우
+    return "🌡️";
+  };
+
+  const fetchWeather = async (destination, startDate, endDate) => {
+    try {
+      // 1. Google Geocoding API로 위도/경도 가져오기
+      const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`);
+      if (!geoRes.data.results.length) return;
+
+      const { lat, lng } = geoRes.data.results[0].geometry.location;
+
+      // 2. Open-Meteo API로 날씨 가져오기
+      const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast`, {
+        params: {
+          latitude: lat,
+          longitude: lng,
+          daily: "weather_code,temperature_2m_max,temperature_2m_min",
+          start_date: startDate,
+          end_date: endDate,
+          timezone: "auto"
+        }
+      });
+
+      const daily = weatherRes.data.daily;
+      const weatherMap = {};
+
+      daily.time.forEach((date, index) => {
+        weatherMap[date] = {
+          code: daily.weather_code[index],
+          max: Math.round(daily.temperature_2m_max[index]),
+          min: Math.round(daily.temperature_2m_min[index]),
+          icon: getWeatherIcon(daily.weather_code[index])
+        };
+      });
+
+      setWeatherData(weatherMap);
+    } catch (err) {
+      console.error("Weather fetch error:", err);
+    }
+  };
+
   const executeGenerate = async () => {
     setLoading(true); setResult(null); setCurrentDayIndex(0); setSelectedActivity(null);
     setShowSuggestions(false);
@@ -152,6 +204,12 @@ function HomeContent() {
     try {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
       setResult(res.data.data);
+
+      // 날씨 정보 가져오기
+      if (formData.startDate && formData.endDate) {
+        fetchWeather(formData.destination, formData.startDate, formData.endDate);
+      }
+
       setGenerateCount(prev => prev + 1);
       fetchUsageInfo(user.id);
     } catch (err) {
@@ -175,18 +233,15 @@ function HomeContent() {
       return;
     }
 
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
-      if (start > end) {
-        alert("마지막 날이 출발일보다 빠를 수 없습니다.");
+    if (!formData.startDate || !formData.endDate) {
+      alert("여행 일정을 선택해주세요.");
+      return;
+    }
+
+    if (formData.startDate === formData.endDate) {
+      if (formData.departureTime <= formData.arrivalTime) {
+        alert("당일치기 여행입니다.\n종료 시간이 시작 시간보다 늦어야 합니다.");
         return;
-      }
-      if (formData.startDate === formData.endDate) {
-        if (formData.departureTime <= formData.arrivalTime) {
-          alert("당일치기 여행입니다.\n종료 시간이 시작 시간보다 늦어야 합니다.");
-          return;
-        }
       }
     }
 
@@ -398,8 +453,31 @@ function HomeContent() {
                         )}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">출발일</label><input type="date" value={formData.startDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-2.5 md:p-4 rounded-xl font-bold text-sm md:text-base text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">마지막 날</label><input type="date" min={formData.startDate} value={formData.endDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-2.5 md:p-4 rounded-xl font-bold text-sm md:text-base text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required /></div>
+                        <div className="space-y-2 col-span-2 relative">
+                          <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">여행일정</label>
+                          <div
+                            onClick={() => setShowCalendar(!showCalendar)}
+                            className="w-full bg-secondary hover:bg-secondary/80 cursor-pointer border border-border p-3 md:p-4 rounded-xl font-bold text-sm md:text-base text-foreground transition-all flex items-center justify-between"
+                          >
+                            <span className={!formData.startDate ? "text-foreground/40" : ""}>
+                              {formData.startDate && formData.endDate ? `${formData.startDate} ~ ${formData.endDate}` : "여행 날짜를 선택해주세요"}
+                            </span>
+                            <span className="text-xl">📅</span>
+                          </div>
+
+                          {showCalendar && (
+                            <div className="absolute top-full left-0 w-full z-50 mt-2 flex justify-center animate-fade-in-up">
+                              <Calendar
+                                startDate={formData.startDate}
+                                endDate={formData.endDate}
+                                onChange={(start, end) => {
+                                  setFormData({ ...formData, startDate: start, endDate: end });
+                                  if (start && end) setShowCalendar(false);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -446,9 +524,20 @@ function HomeContent() {
                 <div className="flex flex-col lg:flex-row gap-10 h-[calc(100vh-200px)] min-h-[600px]">
                   <div className={`lg:w-[45%] flex flex-col h-full ${showMobileMap ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide px-1">
-                      {result.itinerary_data.itinerary.map((day, idx) => (
-                        <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${currentDayIndex === idx ? "bg-foreground text-background scale-105" : "bg-card border border-border text-foreground/60 hover:bg-secondary"}`}>{day.day}일차</button>
-                      ))}
+                      {result.itinerary_data.itinerary.map((day, idx) => {
+                        // 날짜 계산 (시작일 + idx)
+                        const dateObj = new Date(formData.startDate);
+                        dateObj.setDate(dateObj.getDate() + idx);
+                        const dateStr = dateObj.toISOString().split('T')[0];
+                        const weather = weatherData[dateStr];
+
+                        return (
+                          <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-2 ${currentDayIndex === idx ? "bg-foreground text-background scale-105" : "bg-card border border-border text-foreground/60 hover:bg-secondary"}`}>
+                            <span>{day.day}일차</span>
+                            {weather && <span className="text-xs opacity-80">{weather.icon} {weather.max}°</span>}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div className="flex-1 lg:overflow-y-auto pr-0 lg:pr-4 space-y-6 pb-24 lg:pb-10 custom-scrollbar">
@@ -515,8 +604,8 @@ function HomeContent() {
 
                 {/* 수정 요청 바 (모바일 하단 고정) */}
                 {!showMobileMap && (
-                  <div className="fixed lg:static bottom-0 left-0 w-full bg-card border-t lg:border border-border p-4 rounded-t-2xl lg:rounded-2xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30">
-                    <div className="max-w-6xl mx-auto lg:max-w-none">
+                  <div className="fixed lg:hidden bottom-0 left-0 w-full bg-card border-t border-border p-4 rounded-t-2xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-30">
+                    <div className="max-w-6xl mx-auto">
                       <label className="text-xs font-bold text-foreground/60 mb-2 block flex items-center gap-1"><span>🤖</span> AI에게 일정 수정을 요청해보세요</label>
                       <div className="flex gap-2">
                         <input type="text" value={modificationPrompt} onChange={(e) => setModificationPrompt(e.target.value)} placeholder="예: 점심을 초밥집으로 바꿔줘" className="flex-1 bg-secondary border-none p-3 rounded-xl text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-border transition-all" onKeyDown={(e) => e.key === 'Enter' && !modifying && handleModify()} />
