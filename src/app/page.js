@@ -390,14 +390,14 @@ function HomeContent() {
                           </div>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">출발일</label><input type="date" value={formData.startDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">마지막 날</label><input type="date" min={formData.startDate} value={formData.endDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">출발일</label><input type="date" value={formData.startDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-3 md:p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">마지막 날</label><input type="date" min={formData.startDate} value={formData.endDate} className="w-full bg-secondary hover:bg-secondary/80 focus:bg-card border border-border p-3 md:p-4 rounded-xl font-bold text-foreground outline-none focus:ring-2 focus:ring-foreground/20 transition-all" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required /></div>
                       </div>
                     </div>
 
                     <div className="p-5 md:p-6 bg-secondary/50 rounded-2xl border border-border">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-3 rounded-xl text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
                         <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-3 rounded-xl text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
                       </div>

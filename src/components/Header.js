@@ -60,6 +60,8 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                     <div className="flex md:hidden gap-1 mr-1">
                         <button onClick={() => router.push('/?view=home')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab === "home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
                         <button onClick={() => handleNav('/?view=mytrip')} className={`text-xs font-bold px-2 py-1.5 rounded-lg ${activeTab === "mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
+                        <button onClick={() => router.push('/community')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-secondary text-foreground/70">공유</button>
+                        <button onClick={() => router.push('/board')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-secondary text-foreground/70">건의</button>
                     </div>
 
                     {showUserControls && (
