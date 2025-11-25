@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 
 /* Base theme inspired by the provided snippet */
 :root {
@@ -11,33 +10,21 @@
   --foreground-70: rgba(31, 41, 55, 0.7);
   --foreground-60: rgba(31, 41, 55, 0.6);
 
-  --primary: #ff5a5f;      /* coral accent */
-  --secondary: #eef2f7;    /* soft surfaces */
-  --card: #ffffff;         /* clean card surface */
-  --border: #e5e7eb;       /* light borders */
+  --primary: #ff5a5f;
+  /* coral accent */
+  --secondary: #eef2f7;
+  /* soft surfaces */
+  --card: #ffffff;
+  /* clean card surface */
+  --border: #e5e7eb;
+  /* light borders */
 
-  --navbar: #ffffffdd;     /* subtle frosted nav */
+  --navbar: #ffffffdd;
+  /* subtle frosted nav */
   --navbar-border: #e5e7eb;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Modern dark palette */
-    --background: #0b0f1a;
-    --foreground: #f3f4f6;
-    --foreground-80: rgba(243, 244, 246, 0.8);
-    --foreground-70: rgba(243, 244, 246, 0.7);
-    --foreground-60: rgba(243, 244, 246, 0.6);
 
-    --primary: #ff7b80;     /* softer coral on dark */
-    --secondary: #101828;   /* deep panels */
-    --card: #0f172a;
-    --border: #1f2937;
-
-    --navbar: #0f162b;
-    --navbar-border: #1f2937;
-  }
-}
 
 .dark {
   --background: #0b0f1a;
@@ -65,7 +52,7 @@ body {
   background-image:
     radial-gradient(circle at 20% 20%, rgba(255, 90, 95, 0.08), transparent 25%),
     radial-gradient(circle at 80% 0%, rgba(16, 24, 40, 0.06), transparent 22%),
-    linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.6));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.6));
   background-repeat: no-repeat;
   background-size: cover;
 }
@@ -81,28 +68,28 @@ body {
 /* Map legacy Tailwind slate/gray utilities onto theme tokens */
 .bg-white,
 .dark .bg-white {
-  background-color: var(--card) !important;
+  background-color: var(--card);
 }
 
 .bg-gray-50,
 .bg-slate-50,
 .dark .bg-gray-50,
 .dark .bg-slate-50 {
-  background-color: var(--background) !important;
+  background-color: var(--background);
 }
 
 .bg-slate-100,
 .bg-slate-200,
 .dark .bg-slate-100,
 .dark .bg-slate-200 {
-  background-color: var(--secondary) !important;
+  background-color: var(--secondary);
 }
 
 .bg-slate-800,
 .bg-slate-900,
 .dark .bg-slate-800,
 .dark .bg-slate-900 {
-  background-color: var(--card) !important;
+  background-color: var(--card);
 }
 
 .border-slate-50,
@@ -113,7 +100,7 @@ body {
 .dark .border-slate-100,
 .dark .border-slate-200,
 .dark .border-slate-300 {
-  border-color: var(--border) !important;
+  border-color: var(--border);
 }
 
 .text-slate-900,
@@ -122,22 +109,22 @@ body {
 .dark .text-slate-900,
 .dark .text-slate-800,
 .dark .text-slate-700 {
-  color: var(--foreground) !important;
+  color: var(--foreground);
 }
 
 .text-slate-600,
 .dark .text-slate-600 {
-  color: var(--foreground-80) !important;
+  color: var(--foreground-80);
 }
 
 .text-slate-500,
 .dark .text-slate-500 {
-  color: var(--foreground-70) !important;
+  color: var(--foreground-70);
 }
 
 .text-slate-400,
 .dark .text-slate-400 {
-  color: var(--foreground-60) !important;
+  color: var(--foreground-60);
 }
 
 /* Modern form + button defaults when utility classes are absent */

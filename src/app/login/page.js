@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import Header from "@/components/Header";
 
 // Supabase 클라이언트 설정
 const supabase = createClient(
@@ -22,8 +23,8 @@ export default function LoginPage() {
   // 네비게이션 핸들러
   const handleNav = (path) => {
     if (path === '/?view=mytrip') {
-        alert("로그인이 필요한 서비스입니다.");
-        return;
+      alert("로그인이 필요한 서비스입니다.");
+      return;
     }
     router.push(path);
   };
@@ -85,75 +86,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
-      
-      {/* ✨ 헤더 (다크모드 적용) */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 h-16 md:h-20 flex items-center transition-colors">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full flex justify-between items-center">
-          <div className="flex items-center gap-4 md:gap-8">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-              <span className="text-2xl md:text-3xl text-rose-500">✈️</span>
-              <span className="text-lg md:text-xl font-extrabold tracking-tight text-rose-500">TripGen</span>
-            </div>
-            
-            {/* 데스크톱 메뉴 */}
-            <div className="hidden md:flex items-center gap-3">
-              <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  <button onClick={() => handleNav('/?view=home')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">일정 생성</button>
-                  <button onClick={() => handleNav('/?view=mytrip')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">보관함</button>
-              </div>
-              <div className="flex gap-1 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  <button onClick={() => router.push('/community')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">공유게시판</button>
-                  <button onClick={() => router.push('/board')} className="px-5 py-2 rounded-full text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all">건의함</button>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col transition-colors">
 
-          <div className="flex items-center gap-3">
-            {/* 모바일 메뉴 */}
-            <div className="flex md:hidden gap-1 mr-1">
-               <button onClick={() => handleNav('/?view=home')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">생성</button>
-               <button onClick={() => handleNav('/?view=mytrip')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">보관</button>
-               <button onClick={() => router.push('/community')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">공유</button>
-               <button onClick={() => router.push('/board')} className="text-xs font-bold px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">건의</button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* ✨ 헤더 (다크모드 적용) */}
+      <Header showUserControls={false} />
 
       {/* 메인 컨텐츠 */}
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          
+
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
+            <h1 className="text-3xl font-bold text-foreground mb-3">
               {mode === 'login' ? '다시 만나서 반가워요!' : '여행의 시작,'}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-lg">
+            <p className="text-foreground/60 text-lg">
               {mode === 'login' ? 'TripGen으로 여행을 계속하세요.' : 'TripGen과 함께 완벽한 일정을 만들어보세요.'}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-slate-100 dark:border-slate-700 p-8 md:p-10 transition-colors">
-            
+          <div className="bg-card rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border p-8 md:p-10 transition-colors">
+
             {/* 모드 토글 */}
-            <div className="flex mb-8 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl">
+            <div className="flex mb-8 bg-secondary p-1 rounded-xl">
               <button
-                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                  mode === "login" 
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${mode === "login"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-foreground/60 hover:text-foreground"
+                  }`}
                 onClick={() => { setMode("login"); setMessage(null); }}
               >
                 로그인
               </button>
               <button
-                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                  mode === "signup" 
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${mode === "signup"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-foreground/60 hover:text-foreground"
+                  }`}
                 onClick={() => { setMode("signup"); setMessage(null); }}
               >
                 회원가입
@@ -163,10 +131,10 @@ export default function LoginPage() {
             {/* 이메일 폼 */}
             <form onSubmit={handleEmailSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">이메일</label>
+                <label className="text-xs font-bold text-foreground/60 uppercase tracking-wider ml-1">이메일</label>
                 <input
                   type="email"
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-500 focus:bg-white dark:focus:bg-slate-950 text-slate-900 dark:text-white transition-all"
+                  className="w-full bg-secondary border border-border rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:bg-card text-foreground transition-all"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -175,10 +143,10 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">비밀번호</label>
+                <label className="text-xs font-bold text-foreground/60 uppercase tracking-wider ml-1">비밀번호</label>
                 <input
                   type="password"
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-500 focus:bg-white dark:focus:bg-slate-950 text-slate-900 dark:text-white transition-all"
+                  className="w-full bg-secondary border border-border rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:bg-card text-foreground transition-all"
                   placeholder="8자 이상 입력"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -198,10 +166,10 @@ export default function LoginPage() {
             {/* 구분선 */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-slate-600"></div>
+                <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white dark:bg-slate-800 px-4 text-slate-400 font-medium">또는</span>
+                <span className="bg-card px-4 text-foreground/40 font-medium">또는</span>
               </div>
             </div>
 
@@ -209,7 +177,7 @@ export default function LoginPage() {
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3"
+              className="w-full bg-card border border-border hover:bg-secondary text-foreground font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3"
             >
               {/* 로컬 이미지 사용 (다크모드에서도 잘 보이도록 배경 조정은 불필요) */}
               <img src="/google.svg" alt="Google" className="w-5 h-5" />
@@ -223,11 +191,11 @@ export default function LoginPage() {
             )}
           </div>
 
-          <p className="text-center mt-8 text-xs text-slate-400">
-            {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'} 
-            <span 
+          <p className="text-center mt-8 text-xs text-foreground/40">
+            {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
+            <span
               onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(null); }}
-              className="ml-2 text-slate-800 dark:text-slate-300 font-bold cursor-pointer hover:underline"
+              className="ml-2 text-foreground font-bold cursor-pointer hover:underline"
             >
               {mode === 'login' ? '회원가입' : '로그인'}
             </span>
@@ -235,7 +203,7 @@ export default function LoginPage() {
         </div>
       </main>
 
-      <footer className="py-8 text-center text-slate-400 text-xs border-t border-slate-50 dark:border-slate-800">
+      <footer className="py-8 text-center text-foreground/40 text-xs border-t border-border">
         © 2025 TripGen Inc. All rights reserved.
       </footer>
     </div>
