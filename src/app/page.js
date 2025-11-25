@@ -213,6 +213,11 @@ function HomeContent() {
       });
       console.log("🌦️ Weather response:", weatherRes.data);
 
+      if (!weatherRes.data.daily) {
+        console.error("❌ Open-Meteo response missing 'daily' data:", weatherRes.data);
+        return;
+      }
+
       const daily = weatherRes.data.daily;
       const weatherMap = {};
 
