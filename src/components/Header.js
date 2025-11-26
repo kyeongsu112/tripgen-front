@@ -63,7 +63,7 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                         (user.user_metadata?.tier === 'admin' || user.app_metadata?.tier === 'admin' || activeTab === 'admin_check' || isAdmin) && (
                             <button
                                 onClick={() => router.push('/admin')}
-                                className="hidden md:flex items-center gap-1 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-700 transition shadow-sm"
+                                className="hidden md:flex items-center gap-1 bg-secondary text-foreground px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-border transition shadow-sm"
                             >
                                 <span>⚙️</span> 관리자
                             </button>

@@ -50,7 +50,9 @@ export default function MyPage() {
         setNickname(savedNickname);
         setNewNickname(savedNickname);
 
-        if (meta?.avatar_url) {
+        if (meta?.custom_avatar_url) {
+          setAvatarUrl(`${meta.custom_avatar_url}?t=${new Date().getTime()}`);
+        } else if (meta?.avatar_url) {
           // 캐시 방지를 위해 시간 쿼리 추가
           setAvatarUrl(`${meta.avatar_url}?t=${new Date().getTime()}`);
         }
@@ -119,7 +121,7 @@ export default function MyPage() {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl }
+        data: { custom_avatar_url: publicUrl }
       });
       if (updateError) throw updateError;
 
@@ -194,6 +196,7 @@ export default function MyPage() {
   let badgeColor = "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
 
   if (tier === 'pro') { maxLimit = 30; tierName = "Pro Plan"; badgeColor = "bg-purple-100 text-purple-700"; }
+  if (tier === 'admin') { maxLimit = 9999; tierName = "Admin"; badgeColor = "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"; }
   const percentage = tier === 'admin' ? 0 : Math.min((limitInfo?.usage_count / maxLimit) * 100, 100);
 
   return (
