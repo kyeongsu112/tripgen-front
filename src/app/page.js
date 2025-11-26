@@ -446,8 +446,15 @@ function HomeContent() {
             {!result && (
               <div className="max-w-4xl mx-auto animate-fade-in-up">
                 <div className="text-center mb-8 md:mb-12">
-                  <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 md:mb-4 tracking-tight">어디로 떠나실 건가요?</h2>
-                  <p className="text-base md:text-lg text-foreground/60 font-medium">완벽한 여행을 위한 맞춤형 일정을 제안해 드립니다.</p>
+                  <div className="flex justify-center mb-6">
+                    <img
+                      src="/hero-image.png"
+                      alt="Travel Hero"
+                      className="w-64 h-64 md:w-80 md:h-80 object-contain animate-float drop-shadow-2xl"
+                    />
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 md:mb-4 tracking-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>어디로 떠나실 건가요?</h2>
+                  <p className="text-base md:text-lg text-foreground/60 font-medium animate-fade-in-up" style={{ animationDelay: '0.2s' }}>완벽한 여행을 위한 맞춤형 일정을 제안해 드립니다.</p>
                 </div>
 
                 <div className="bg-card p-6 md:p-10 rounded-[2.5rem] shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-border relative transition-colors">

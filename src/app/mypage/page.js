@@ -181,7 +181,7 @@ export default function MyPage() {
     return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground dark:bg-slate-900"><div className="animate-spin text-4xl">⚪</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>;
 
   const tier = limitInfo?.tier || 'free';
   let maxLimit = 3;
@@ -194,7 +194,7 @@ export default function MyPage() {
   const percentage = tier === 'admin' ? 0 : Math.min((limitInfo?.usage_count / maxLimit) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-background text-foreground font-sans transition-colors">
 
       {/* ✨ 헤더 (다크모드 적용) */}
       <Header user={user} activeTab="mypage" />
@@ -305,7 +305,7 @@ export default function MyPage() {
               {myTrips.map(trip => {
                 const coverImage = getTripCoverImage(trip);
                 return (
-                  <div key={trip.id} className="group cursor-pointer relative bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onClick={() => router.push(`/?view=home&tripId=${trip.id}`)}>
+                  <div key={trip.id} className="group cursor-pointer relative bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onClick={() => router.push(`/share/${trip.id}`)}>
                     <div className="relative aspect-[4/3] bg-secondary overflow-hidden">
                       <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80" }} />
                       <div className="absolute top-3 left-3 bg-card/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-foreground">{trip.duration}</div>
