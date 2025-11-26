@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
 import WeatherWidget from "@/components/WeatherWidget";
+import AdRewardModal from "@/components/AdRewardModal";
 
 
 // --- 설정 ---
@@ -48,6 +49,7 @@ function HomeContent() {
   const [modifying, setModifying] = useState(false);
   const [modificationPrompt, setModificationPrompt] = useState("");
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [showAdModal, setShowAdModal] = useState(false);
 
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showMobileMap, setShowMobileMap] = useState(false);
@@ -200,7 +202,12 @@ function HomeContent() {
       setGenerateCount(prev => prev + 1);
       fetchUsageInfo(user.id);
     } catch (err) {
-      alert("오류: " + (err.response?.data?.error || err.message));
+      // 한도 초과 시 광고 모달 표시
+      if (err.response?.status === 403 && err.response?.data?.canEarnMore) {
+        setShowAdModal(true);
+      } else {
+        alert("오류: " + (err.response?.data?.error || err.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -665,6 +672,16 @@ function HomeContent() {
         )}
       </main>
       <footer className="border-t border-border py-10 mt-12 bg-secondary"><div className="max-w-7xl mx-auto px-6 text-center text-foreground/40 text-sm">© 2025 TripGen Inc. All rights reserved.</div></footer>
+
+      <AdRewardModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onSuccess={() => {
+          fetchUsageInfo(user?.id);
+          executeGenerate();
+        }}
+        userId={user?.id}
+      />
     </div>
   );
 }

@@ -280,7 +280,7 @@ export default function MyPage() {
         <div className="bg-card px-6 py-3 rounded-xl border border-border w-full md:w-64 mb-8 md:mb-12">
           <div className="flex justify-between text-xs font-bold text-foreground/60 mb-2">
             <span>이번 달 생성</span>
-            <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit}</span>
+            <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit} {limitInfo?.ad_credits > 0 && `(+${limitInfo.ad_credits})`}</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
             <div className="bg-rose-500 h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
