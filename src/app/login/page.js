@@ -185,7 +185,7 @@ export default function LoginPage() {
               className="w-full bg-card border border-border hover:bg-secondary text-foreground font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3"
             >
               {/* 로컬 이미지 사용 (다크모드에서도 잘 보이도록 배경 조정은 불필요) */}
-              <img src="/google.svg" alt="Google" className="w-5 h-5" />
+              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" className="w-5 h-5" />
               <span>Google 계정으로 계속하기</span>
             </button>
 

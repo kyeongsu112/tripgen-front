@@ -61,13 +61,23 @@ function HomeContent() {
   useEffect(() => {
     const checkUser = async () => {
       setIsUserLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        fetchUsageInfo(session.user.id);
-      } else {
-        router.replace('/login');
-        return;
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session) {
+          setUser(session.user);
+          fetchUsageInfo(session.user.id);
+        } else {
+          // 로그인 페이지로 리다이렉트 (필요한 경우)
+          // router.replace('/login'); 
+          // 홈 화면은 비로그인 상태에서도 접근 가능해야 하므로 리다이렉트 제거 또는 조건부 처리
+        }
+      } catch (err) {
+        console.error("Session check error:", err);
+        if (err.message.includes("Refresh Token")) {
+          await supabase.auth.signOut();
+        }
       }
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
@@ -403,6 +413,7 @@ function HomeContent() {
         user={user}
         onLogoClick={handleLogoClick}
         activeTab={activeTab}
+        isAdmin={usageInfo.tier === 'admin'}
       />
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">

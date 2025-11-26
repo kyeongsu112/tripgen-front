@@ -34,29 +34,40 @@ export default function MyPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+        setUser(session.user);
+
+        // 닉네임 & 사진 불러오기
+        const meta = session.user.user_metadata;
+        const savedNickname = meta?.nickname || session.user.email.split('@')[0];
+        setNickname(savedNickname);
+        setNewNickname(savedNickname);
+
+        if (meta?.avatar_url) {
+          // 캐시 방지를 위해 시간 쿼리 추가
+          setAvatarUrl(`${meta.avatar_url}?t=${new Date().getTime()}`);
+        }
+
+        // 사용량 정보 로드
+        const { data: limit } = await supabase.from('user_limits').select('*').eq('user_id', session.user.id).single();
+        setLimitInfo(limit || { tier: 'free', usage_count: 0 });
+
+        fetchMyTrips(session.user.id);
+        setLoading(false);
+      } catch (err) {
+        console.error("Session check error:", err);
+        if (err.message && err.message.includes("Refresh Token")) {
+          await supabase.auth.signOut();
+          router.push('/login');
+        }
       }
-      setUser(session.user);
-
-      // 닉네임 & 사진 불러오기
-      const meta = session.user.user_metadata;
-      const savedNickname = meta?.nickname || session.user.email.split('@')[0];
-      setNickname(savedNickname);
-      setNewNickname(savedNickname);
-
-      if (meta?.avatar_url) {
-        // 캐시 방지를 위해 시간 쿼리 추가
-        setAvatarUrl(`${meta.avatar_url}?t=${new Date().getTime()}`);
-      }
-
-      // 사용량 정보 로드
-      const { data: limit } = await supabase.from('user_limits').select('*').eq('user_id', session.user.id).single();
-      setLimitInfo(limit || { tier: 'free', usage_count: 0 });
-
-      fetchMyTrips(session.user.id);
     };
     checkUser();
   }, []);
@@ -66,53 +77,14 @@ export default function MyPage() {
       const res = await axios.get(`${API_BASE_URL}/my-trips?user_id=${userId}`);
       setMyTrips(res.data.data);
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch my trips:", err);
     }
   };
 
-  // 프로필 사진 업로드
-  const handleAvatarUpload = async (event) => {
-    try {
-      setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) return;
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/profile_${Date.now()}.${fileExt}`;
-
-      // 1. Storage 업로드
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // 2. URL 가져오기
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      const publicUrl = urlData.publicUrl;
-
-      // 3. Auth 정보 업데이트
-      const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
-      if (updateError) throw updateError;
-
-      // 4. 상태 갱신
-      setAvatarUrl(publicUrl);
-      router.refresh();
-      alert("프로필 사진이 변경되었습니다! 📸");
-
-    } catch (error) {
-      alert('업로드 실패: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // 닉네임 변경
   const handleUpdateProfile = async () => {
-    if (!newNickname.trim()) {
-      alert("닉네임을 입력해주세요.");
+    if (!user) return;
+    if (newNickname === nickname) {
+      setIsEditing(false);
       return;
     }
     try {
@@ -127,6 +99,39 @@ export default function MyPage() {
       alert("닉네임이 변경되었습니다! ✨");
     } catch (err) {
       alert("업데이트 실패: " + err.message);
+    }
+  };
+
+  const handleAvatarUpload = async (event) => {
+    try {
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('이미지를 선택해주세요.');
+      }
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      let { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+      if (updateError) throw updateError;
+
+      // 세션 강제 리프레시 (중요!)
+      await supabase.auth.refreshSession();
+
+      setAvatarUrl(publicUrl);
+      alert('프로필 이미지가 변경되었습니다!');
+    } catch (error) {
+      alert('이미지 업로드 실패: ' + error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -189,15 +194,11 @@ export default function MyPage() {
   let badgeColor = "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
 
   if (tier === 'pro') { maxLimit = 30; tierName = "Pro Plan"; badgeColor = "bg-purple-100 text-purple-700"; }
-  else if (tier === 'admin') { maxLimit = Infinity; tierName = "Admin"; badgeColor = "bg-black text-white dark:bg-white dark:text-black"; }
-
   const percentage = tier === 'admin' ? 0 : Math.min((limitInfo?.usage_count / maxLimit) * 100, 100);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans transition-colors">
-
-      {/* ✨ 헤더 (다크모드 적용) */}
-      <Header user={user} activeTab="mypage" />
+      <Header user={user} activeTab="mypage" isAdmin={limitInfo?.tier === 'admin'} />
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full">
         <div className="mb-8 md:mb-10">
@@ -340,11 +341,11 @@ export default function MyPage() {
           </button>
         </div>
 
-      </main >
+      </main>
 
       <footer className="py-8 text-center text-foreground/40 text-xs border-t border-border">
         © 2025 TripGen Inc. All rights reserved.
       </footer>
-    </div >
+    </div>
   );
 }

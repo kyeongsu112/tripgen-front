@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 
-export default function Header({ user, onLogoClick, activeTab, showUserControls = true }) {
+export default function Header({ user, onLogoClick, activeTab, showUserControls = true, isAdmin = false }) {
     const router = useRouter();
     const { theme, toggleTheme } = useTheme();
 
@@ -57,6 +57,18 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                         <button onClick={() => handleNav('/community')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "community" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>공유</button>
                         <button onClick={() => handleNav('/board')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "board" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>건의</button>
                     </div>
+
+                    {/* 관리자 버튼 */}
+                    {showUserControls && user && activeTab !== 'admin' && (
+                        (user.user_metadata?.tier === 'admin' || user.app_metadata?.tier === 'admin' || activeTab === 'admin_check' || isAdmin) && (
+                            <button
+                                onClick={() => router.push('/admin')}
+                                className="hidden md:flex items-center gap-1 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-700 transition shadow-sm"
+                            >
+                                <span>⚙️</span> 관리자
+                            </button>
+                        )
+                    )}
 
                     {showUserControls && (
                         user ? (
