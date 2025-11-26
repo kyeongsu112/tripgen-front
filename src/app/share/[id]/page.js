@@ -161,7 +161,7 @@ export default function SharePage({ params }) {
                     >
                       <div className="flex flex-col sm:flex-row">
                         {/* 이미지 */}
-                        <div className="w-full sm:w-32 h-32 sm:h-auto bg-slate-100 dark:bg-slate-700 shrink-0 relative overflow-hidden">
+                        <div className="w-full sm:w-32 h-32 sm:h-32 bg-slate-100 dark:bg-slate-700 shrink-0 relative overflow-hidden">
                           {act.photoUrl ? (
                             <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
                           ) : (

@@ -588,7 +588,7 @@ function HomeContent() {
 
                             <div onClick={() => { setSelectedActivity(act); setShowMobileMap(true); }} className={`bg-card rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedActivity === act ? 'border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900' : 'border-border'}`}>
                               <div className="flex flex-col sm:flex-row">
-                                <div className="w-full sm:w-32 h-32 sm:h-auto bg-secondary shrink-0 relative overflow-hidden">
+                                <div className="w-full sm:w-32 h-32 sm:h-32 bg-secondary shrink-0 relative overflow-hidden">
                                   {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between">
