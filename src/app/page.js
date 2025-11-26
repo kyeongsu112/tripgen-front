@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
+import WeatherWidget from "@/components/WeatherWidget";
 
 
 // --- 설정 ---
@@ -56,7 +57,7 @@ function HomeContent() {
   const [adTimer, setAdTimer] = useState(30);
   const [pendingAction, setPendingAction] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [weatherData, setWeatherData] = useState({});
+
 
   useEffect(() => {
     const checkUser = async () => {
@@ -137,7 +138,7 @@ function HomeContent() {
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
-    if (value.length > 1) {
+    if (value.length >= 2) {
       debounceTimeout.current = setTimeout(async () => {
         try {
           const res = await axios.get(`${API_BASE_URL}/places/autocomplete`, {
@@ -148,7 +149,7 @@ function HomeContent() {
         } catch (err) {
           console.error("Autocomplete Error", err);
         }
-      }, 300);
+      }, 800);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -173,58 +174,18 @@ function HomeContent() {
     return "🌡️";
   };
 
-  const fetchWeather = async (destination, startDate, endDate) => {
-    if (!GOOGLE_MAPS_API_KEY) return;
-
-    try {
-      // 1. Google Places API (New)로 위도/경도 가져오기
-      const placesUrl = `https://places.googleapis.com/v1/places:searchText`;
-
-      const placesRes = await axios.post(placesUrl, {
-        textQuery: destination
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'places.location'
-        }
-      });
-
-      if (!placesRes.data.places || !placesRes.data.places.length) return;
-
-      const { latitude, longitude } = placesRes.data.places[0].location;
-
-      // 2. Open-Meteo API로 날씨 가져오기
-      const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast`, {
-        params: {
-          latitude: latitude,
-          longitude: longitude,
-          daily: "weather_code,temperature_2m_max,temperature_2m_min",
-          start_date: startDate,
-          end_date: endDate,
-          timezone: "auto"
-        }
-      });
-
-      if (!weatherRes.data.daily) return;
-
-      const daily = weatherRes.data.daily;
-      const weatherMap = {};
-
-      daily.time.forEach((date, index) => {
-        weatherMap[date] = {
-          code: daily.weather_code[index],
-          max: Math.round(daily.temperature_2m_max[index]),
-          min: Math.round(daily.temperature_2m_min[index]),
-          icon: getWeatherIcon(daily.weather_code[index])
-        };
-      });
-
-      setWeatherData(weatherMap);
-    } catch (err) {
-      console.error("Weather fetch error:", err);
-    }
+  const getWeatherDescription = (code) => {
+    if (code === 0) return "맑음";
+    if (code >= 1 && code <= 3) return "구름 조금";
+    if (code >= 45 && code <= 48) return "안개";
+    if (code >= 51 && code <= 67) return "비/이슬비";
+    if (code >= 71 && code <= 77) return "눈";
+    if (code >= 80 && code <= 82) return "소나기";
+    if (code >= 95 && code <= 99) return "뇌우";
+    return "정보 없음";
   };
+
+
 
   const executeGenerate = async () => {
     setLoading(true); setResult(null); setCurrentDayIndex(0); setSelectedActivity(null);
@@ -234,10 +195,7 @@ function HomeContent() {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
       setResult(res.data.data);
 
-      // 날씨 정보 가져오기
-      if (formData.startDate && formData.endDate) {
-        fetchWeather(formData.destination, formData.startDate, formData.endDate);
-      }
+
 
       setGenerateCount(prev => prev + 1);
       fetchUsageInfo(user.id);
@@ -472,6 +430,8 @@ function HomeContent() {
                   <form onSubmit={handleGenerateClick} className="space-y-6 md:space-y-8">
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+
+
                       <div className="space-y-2 relative">
                         <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider ml-1">여행지</label>
                         <input
@@ -488,6 +448,7 @@ function HomeContent() {
                             ))}
                           </div>
                         )}
+
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <div className="space-y-2 col-span-2 relative">
@@ -519,9 +480,9 @@ function HomeContent() {
                     </div>
 
                     <div className="p-5 md:p-6 bg-secondary/50 rounded-2xl border border-border">
-                      <div className="grid grid-cols-2 gap-3 md:gap-4">
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-2 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-2 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -589,21 +550,12 @@ function HomeContent() {
                   <div className={`lg:w-[45%] flex flex-col h-full ${showMobileMap ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="flex overflow-x-auto pb-4 gap-2 mb-2 scrollbar-hide px-1">
                       {result.itinerary_data.itinerary.map((day, idx) => {
-                        // 날짜 계산 (시작일 + idx)
-                        let weather = null;
-                        if (formData.startDate) {
-                          const dateObj = new Date(formData.startDate);
-                          if (!isNaN(dateObj.getTime())) {
-                            dateObj.setDate(dateObj.getDate() + idx);
-                            const dateStr = dateObj.toISOString().split('T')[0];
-                            weather = weatherData[dateStr];
-                          }
-                        }
+                        const weather = day.weather_info;
 
                         return (
                           <button key={idx} onClick={() => setCurrentDayIndex(idx)} className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-2 ${currentDayIndex === idx ? "bg-foreground text-background scale-105" : "bg-card border border-border text-foreground/60 hover:bg-secondary"}`}>
                             <span>{day.day}일차</span>
-                            {weather && <span className="text-xs opacity-80">{weather.icon} {weather.min}°/{weather.max}°</span>}
+                            {weather && <span className="text-xs opacity-80">{getWeatherIcon(weather.code)} {weather.min}°/{weather.max}°</span>}
                           </button>
                         );
                       })}
@@ -611,6 +563,24 @@ function HomeContent() {
 
                     <div className="flex-1 lg:overflow-y-auto pr-0 lg:pr-4 space-y-6 pb-24 lg:pb-10 custom-scrollbar">
                       <div className="pl-4 border-l-2 border-border space-y-8 ml-2 mt-2">
+                        {/* 날씨 정보 (Daily Weather) */}
+                        {result.itinerary_data.itinerary[currentDayIndex].weather_info && (
+                          <div className="mb-8 ml-2 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/50 rounded-2xl border border-blue-100 dark:border-slate-700 flex items-center gap-5 shadow-sm">
+                            <div className="text-4xl filter drop-shadow-sm">{getWeatherIcon(result.itinerary_data.itinerary[currentDayIndex].weather_info.code)}</div>
+                            <div>
+                              <div className="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                {getWeatherDescription(result.itinerary_data.itinerary[currentDayIndex].weather_info.code)}
+                                <span className="text-xs font-normal text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-600">예보</span>
+                              </div>
+                              <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
+                                <span className="text-rose-500">최고 {result.itinerary_data.itinerary[currentDayIndex].weather_info.max}°</span>
+                                <span className="mx-2 text-slate-300">|</span>
+                                <span className="text-blue-500">최저 {result.itinerary_data.itinerary[currentDayIndex].weather_info.min}°</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {result.itinerary_data.itinerary[currentDayIndex].activities.map((act, idx) => (
                           <div key={idx} className="relative group">
                             <div className="absolute -left-[23px] top-1 w-4 h-4 bg-rose-500 rounded-full ring-4 ring-card shadow-sm"></div>
