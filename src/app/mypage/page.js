@@ -249,8 +249,8 @@ export default function MyPage() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 group">
-                    <h1 className="text-lg md:text-2xl font-bold text-foreground flex items-center gap-2">
-                      안녕하세요, <span className="text-rose-500">{nickname}</span>님!
+                    <h1 className="text-lg md:text-2xl font-bold text-foreground">
+                      안녕하세요, <span className="text-rose-500">{nickname}</span> 님!
                     </h1>
                     <button
                       onClick={() => setIsEditing(true)}

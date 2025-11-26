@@ -520,8 +520,8 @@ function HomeContent() {
 
                     <div className="p-5 md:p-6 bg-secondary/50 rounded-2xl border border-border">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
-                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 시작 시간</label><input type="time" value={formData.arrivalTime} className="w-full bg-card border border-border p-3 md:p-4 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, arrivalTime: e.target.value })} /></div>
+                        <div className="space-y-1"><label className="text-xs font-bold text-foreground/60 ml-1">여행 종료 시간</label><input type="time" value={formData.departureTime} className="w-full bg-card border border-border p-3 md:p-4 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50" onChange={e => setFormData({ ...formData, departureTime: e.target.value })} /></div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -545,7 +545,7 @@ function HomeContent() {
                             type="text"
                             placeholder="예: 50만원, 1000달러"
                             value={formData.budget}
-                            className="w-full bg-card border border-border p-2.5 md:p-3 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50"
+                            className="w-full bg-card border border-border p-3 md:p-4 rounded-xl text-xs md:text-sm font-bold text-foreground outline-none focus:border-foreground/50"
                             onChange={e => setFormData({ ...formData, budget: e.target.value })}
                           />
                         </div>

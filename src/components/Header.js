@@ -51,7 +51,7 @@ export default function Header({ user, onLogoClick, activeTab, showUserControls 
                     </button>
 
                     {/* 모바일 메뉴 (스크롤 가능) */}
-                    <div className="flex md:hidden overflow-x-auto gap-2 mr-1 max-w-[50vw] scrollbar-hide mask-linear-fade touch-pan-x">
+                    <div className="flex md:hidden overflow-x-auto gap-2 mr-1 max-w-[70vw] scrollbar-hide touch-pan-x">
                         <button onClick={() => handleNav('/?view=home')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "home" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>생성</button>
                         <button onClick={() => handleNav('/?view=mytrip')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "mytrip" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>보관</button>
                         <button onClick={() => handleNav('/community')} className={`text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shrink-0 ${activeTab === "community" ? "bg-primary text-white" : "bg-secondary text-foreground/70"}`}>공유</button>
