@@ -15,8 +15,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트용
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+//const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 if (!GOOGLE_MAPS_API_KEY) {
@@ -597,8 +597,8 @@ function HomeContent() {
 
                             <div onClick={() => { setSelectedActivity(act); setShowMobileMap(true); }} className={`bg-card rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedActivity === act ? 'border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900' : 'border-border'}`}>
                               <div className="flex flex-col sm:flex-row">
-                                <div className="w-full sm:w-32 h-32 bg-secondary shrink-0 relative overflow-hidden">
-                                  {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-700" /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
+                                <div className="w-full sm:w-32 h-32 sm:h-auto sm:min-h-[8rem] bg-secondary shrink-0 relative overflow-hidden">
+                                  {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-700" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('flex', 'items-center', 'justify-center'); e.target.parentElement.innerHTML = '<div class="text-2xl opacity-20">📍</div>'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between">
                                   <div>
