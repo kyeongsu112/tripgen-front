@@ -158,7 +158,9 @@ function HomeContent() {
     }
   };
 
-  const selectSuggestion = (placeName) => {
+  const selectSuggestion = (e, placeName) => {
+    e.stopPropagation();
+    e.preventDefault();
     setFormData({ ...formData, destination: placeName });
     setSuggestions([]);
     setShowSuggestions(false);
@@ -451,7 +453,7 @@ function HomeContent() {
                         {showSuggestions && suggestions.length > 0 && (
                           <div className="absolute top-full left-0 w-full bg-card border border-border rounded-xl shadow-xl mt-2 z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {suggestions.map((item, idx) => (
-                              <div key={idx} className="p-4 hover:bg-secondary cursor-pointer flex items-center gap-3 text-sm font-bold text-foreground border-b border-border last:border-none" onClick={() => selectSuggestion(item.description)}><span className="text-lg">📍</span>{item.description}</div>
+                              <div key={idx} className="p-4 hover:bg-secondary cursor-pointer flex items-center gap-3 text-sm font-bold text-foreground border-b border-border last:border-none" onClick={(e) => selectSuggestion(e, item.description)}><span className="text-lg">📍</span>{item.description}</div>
                             ))}
                           </div>
                         )}
@@ -595,8 +597,8 @@ function HomeContent() {
 
                             <div onClick={() => { setSelectedActivity(act); setShowMobileMap(true); }} className={`bg-card rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedActivity === act ? 'border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900' : 'border-border'}`}>
                               <div className="flex flex-col sm:flex-row">
-                                <div className="w-full sm:w-32 h-32 sm:h-32 bg-secondary shrink-0 relative overflow-hidden">
-                                  {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
+                                <div className="w-full sm:w-32 h-32 bg-secondary shrink-0 relative overflow-hidden">
+                                  {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-700" /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between">
                                   <div>
