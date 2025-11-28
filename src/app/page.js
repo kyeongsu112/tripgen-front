@@ -465,7 +465,7 @@ function HomeContent() {
                   return (
                     <div key={trip.id} className="group cursor-pointer relative" onClick={() => { setResult(trip); router.push('/?view=home'); }}>
                       <div className="relative aspect-[4/3] bg-secondary rounded-xl overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition-all">
-                        <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80" }} />
+                        <PlaceImage photoUrl={coverImage} placeName={trip.destination} />
                         <div className="absolute top-3 left-3 bg-card/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-foreground">{trip.duration}</div>
 
                         <div className="absolute bottom-3 right-3 flex gap-2">
