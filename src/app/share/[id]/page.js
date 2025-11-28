@@ -1,34 +1,103 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import WeatherWidget from '@/components/WeatherWidget';
+import Header from '@/components/Header';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+// ✨ [추가] 비용 절감을 위한 Lazy Loading 이미지 컴포넌트
+function PlaceImage({ photoUrl, placeName }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  if (!photoUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-2xl bg-slate-50 dark:bg-slate-700 text-slate-300">
+        📍
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 gap-2">
+        <span className="text-2xl">📷</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsLoaded(true);
+          }}
+          className="text-xs font-bold bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition"
+        >
+          사진 보기
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={photoUrl}
+      alt={placeName}
+      className="w-full h-full object-cover animate-fade-in"
+      onError={(e) => {
+        e.target.style.display = 'none';
+        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl bg-slate-50 opacity-50">🚫</div>';
+      }}
+    />
+  );
+}
 
 export default function SharePage({ params }) {
   const router = useRouter();
+  const unwrappedParams = use(params);
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
+      return () => subscription.unsubscribe();
+    };
+    checkUser();
+  }, []);
 
   useEffect(() => {
     const fetchTrip = async () => {
       try {
-        const response = await fetch(`/api/public/trip/${params.id}`);
+        const response = await fetch(`/api/public/trip/${unwrappedParams.id}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server responded with ${response.status}: ${errorText}`);
+        }
+
         const data = await response.json();
         if (data.success) {
           setTrip(data.data);
         } else {
-          setError("일정을 찾을 수 없습니다.");
+          setError(data.error || "일정을 찾을 수 없습니다.");
         }
       } catch (err) {
-        setError("오류가 발생했습니다.");
+        console.error("Fetch error:", err);
+        setError(`오류가 발생했습니다: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
     fetchTrip();
-  }, [params.id]);
+  }, [unwrappedParams.id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900"><div className="animate-spin text-4xl">✈️</div></div>;
   if (error) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900 text-red-500 font-bold">{error}</div>;
@@ -36,24 +105,52 @@ export default function SharePage({ params }) {
 
   const currentDayPlan = trip.itinerary_data.itinerary[currentDayIndex];
 
+  // ✨ [수정] 올바른 지도 URL 생성 로직
   const getMapUrl = (activities) => {
     if (!activities || activities.length === 0) return null;
-    const waypoints = activities
-      .filter(a => a.place_name && !a.place_name.includes("이동") && !a.place_name.includes("숙소"))
-      .map(a => encodeURIComponent(a.place_name))
-      .join("|");
-    if (!waypoints) return null;
-    return `https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${waypoints.split("|")[0]}&destination=${waypoints.split("|")[waypoints.split("|").length - 1]}&waypoints=${waypoints}&mode=transit`;
+
+    // API 키 가져오기
+    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const baseUrl = "https://www.google.com/maps/embed/v1";
+
+    // 1. 선택된 활동이 있으면 해당 장소 표시
+    if (selectedActivity) {
+      const query = selectedActivity.place_id
+        ? `place_id:${selectedActivity.place_id}`
+        : encodeURIComponent(selectedActivity.place_name);
+      return `${baseUrl}/place?key=${API_KEY}&q=${query}`;
+    }
+
+    // 2. 전체 경로 표시
+    const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
+
+    if (validPlaces.length < 2) {
+      if (validPlaces.length === 1) {
+        const query = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
+        return `${baseUrl}/place?key=${API_KEY}&q=${query}`;
+      }
+      return null;
+    }
+
+    const origin = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
+    const destination = validPlaces[validPlaces.length - 1].place_id ? `place_id:${validPlaces[validPlaces.length - 1].place_id}` : encodeURIComponent(validPlaces[validPlaces.length - 1].place_name);
+
+    let waypoints = "";
+    if (validPlaces.length > 2) {
+      const wpList = validPlaces.slice(1, -1).map(p => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name)).join("|");
+      waypoints = `&waypoints=${wpList}`;
+    }
+
+    return `${baseUrl}/directions?key=${API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
   };
 
-  // WMO 날씨 코드 매핑
   const getWeatherIcon = (code) => {
     if (code === 0) return "☀️";
     if (code >= 1 && code <= 3) return "⛅";
     if (code >= 45 && code <= 48) return "🌫️";
     if (code >= 51 && code <= 67) return "🌧️";
     if (code >= 71 && code <= 77) return "❄️";
-    if (code >= 80 && code <= 82) return "🌧️";
+    if (code >= 80 && code <= 82) return "🌦️";
     if (code >= 95 && code <= 99) return "⛈️";
     return "🌡️";
   };
@@ -73,25 +170,11 @@ export default function SharePage({ params }) {
     <div className="min-h-screen bg-white dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 transition-colors">
 
       {/* 헤더 */}
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 h-16 flex items-center transition-colors">
-        <div className="max-w-7xl mx-auto px-4 w-full flex justify-between items-center">
-          <div
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={() => router.push('/')}
-          >
-            <span className="text-2xl group-hover:scale-110 transition-transform text-rose-500">✈️</span>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">TripGen</span>
-            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] px-2 py-1 rounded-full font-bold ml-1 tracking-wider">SHARED</span>
-          </div>
-
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm font-bold text-white bg-rose-500 px-5 py-2 rounded-full hover:bg-rose-600 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-2"
-          >
-            <span>🚀</span> 나도 일정 만들기
-          </button>
-        </div>
-      </nav>
+      <Header
+        user={user}
+        onLogoClick={() => router.push('/')}
+        showUserControls={true}
+      />
 
       <main className="max-w-6xl mx-auto px-4 py-10">
         <div className="animate-fade-in-up pb-20">
@@ -103,7 +186,6 @@ export default function SharePage({ params }) {
               <span className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1"><span className="text-rose-500">🗓️</span> {trip.duration}</span>
               <span className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1"><span className="text-rose-500">📍</span> {trip.destination}</span>
             </div>
-            <WeatherWidget destination={trip.destination} />
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
@@ -116,12 +198,13 @@ export default function SharePage({ params }) {
                   <button
                     key={idx}
                     onClick={() => setCurrentDayIndex(idx)}
-                    className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${currentDayIndex === idx
+                    className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex items-center gap-2 ${currentDayIndex === idx
                       ? "bg-black dark:bg-white text-white dark:text-black scale-105"
                       : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                       }`}
                   >
-                    {day.day}일차
+                    <span>{day.day}일차</span>
+                    {day.weather_info && <span className="text-xs opacity-80">{getWeatherIcon(day.weather_info.code)} {day.weather_info.min}°/{day.weather_info.max}°</span>}
                   </button>
                 ))}
               </div>
@@ -160,13 +243,9 @@ export default function SharePage({ params }) {
                       className={`bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group ${selectedActivity === act ? 'border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900' : 'border-slate-200 dark:border-slate-700'}`}
                     >
                       <div className="flex flex-col sm:flex-row">
-                        {/* 이미지 */}
+                        {/* 이미지 영역: PlaceImage 컴포넌트로 교체 */}
                         <div className="w-full sm:w-32 h-32 sm:h-auto sm:min-h-[8rem] bg-slate-100 dark:bg-slate-700 shrink-0 relative overflow-hidden">
-                          {act.photoUrl ? (
-                            <img src={act.photoUrl} alt={act.place_name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('flex', 'items-center', 'justify-center'); e.target.parentElement.innerHTML = '<div class="text-2xl opacity-20">📍</div>'; }} />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl bg-slate-50 dark:bg-slate-700 text-slate-300">📍</div>
-                          )}
+                          <PlaceImage photoUrl={act.photoUrl} placeName={act.place_name} />
                         </div>
 
                         <div className="p-4 flex-1 flex flex-col justify-between">

@@ -13,9 +13,39 @@ export default function WeatherWidget({ destination }) {
         const fetchWeather = async () => {
             setLoading(true);
             setError(null);
+
+            // 도시 이름 정제 함수
+            const cleanCityName = (rawName) => {
+                let name = rawName.replace(/일본|대한민국|한국|중국|미국|프랑스|이탈리아|스페인|영국|독일/g, '').trim();
+                if (name.includes(' ')) {
+                    const parts = name.split(' ');
+                    name = parts[parts.length - 1];
+                }
+                return name.replace(/[시군구도부현]$/, '');
+            };
+
+            const cityNameMap = {
+                '교토': 'Kyoto', '오사카': 'Osaka', '도쿄': 'Tokyo', '후쿠오카': 'Fukuoka',
+                '삿포로': 'Sapporo', '나고야': 'Nagoya', '요코하마': 'Yokohama', '오키나와': 'Okinawa',
+                '서울': 'Seoul', '부산': 'Busan', '제주': 'Jeju',
+                '파리': 'Paris', '런던': 'London', '뉴욕': 'New York', '로마': 'Rome',
+                '바르셀로나': 'Barcelona', '방콕': 'Bangkok', '홍콩': 'Hong Kong',
+                '싱가포르': 'Singapore', '두바이': 'Dubai', '시드니': 'Sydney',
+                '다낭': 'Da Nang', '호이안': 'Hoi An', '나트랑': 'Nha Trang', '푸꾸옥': 'Phu Quoc',
+                '타이베이': 'Taipei', '가오슝': 'Kaohsiung'
+            };
+
             try {
-                // 1. Geocoding to get coordinates
-                const geoRes = await axios.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=ko&format=json`);
+                const cleanedName = cleanCityName(destination);
+
+                // 1. Geocoding (한글 시도)
+                let geoRes = await axios.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanedName)}&count=1&language=ko&format=json`);
+
+                // 한글 검색 실패 시 영어로 재시도
+                if (!geoRes.data.results || geoRes.data.results.length === 0) {
+                    const englishName = cityNameMap[cleanedName] || cleanedName;
+                    geoRes = await axios.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(englishName)}&count=1&language=en&format=json`);
+                }
 
                 if (!geoRes.data.results || geoRes.data.results.length === 0) {
                     throw new Error("Location not found");

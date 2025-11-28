@@ -177,15 +177,20 @@ export default function MyPage() {
     }
   };
 
+  // ✨ [수정] 비용 절감을 위해 구글 포토 URL 검색 로직 제거
+  // 대신 무료 이미지(Unsplash 등)를 고정적으로 사용하거나 목적지 키워드로 검색
   const getTripCoverImage = (trip) => {
-    try {
-      for (const day of trip.itinerary_data.itinerary) {
-        for (const activity of day.activities) {
-          if (activity.photoUrl) return activity.photoUrl;
-        }
-      }
-    } catch (e) { }
-    return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
+    // ⚠️ 비용 위험: 구글 포토 URL을 사용하면 목록 조회 시마다 과금됩니다.
+    // 따라서 여기서는 구글 URL을 찾지 않고, 바로 무료 이미지를 반환합니다.
+
+    // 무료 여행 이미지 (Unsplash Source는 deprecated 되었으므로 고정 이미지나 다른 서비스 권장)
+    // 여기서는 예시로 고정된 고화질 여행 이미지를 사용하거나, 에러 시 처리되는 이미지를 메인으로 씁니다.
+
+    // 1. 목적지가 있다면 텍스트 기반 이미지 서비스 시도 (선택 사항)
+    // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`; 
+
+    // 2. 안전하게 고정 이미지 사용 (비용 0원)
+    return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>;
@@ -309,9 +314,15 @@ export default function MyPage() {
               {myTrips.map(trip => {
                 const coverImage = getTripCoverImage(trip);
                 return (
-                  <div key={trip.id} className="group cursor-pointer relative bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onClick={() => router.push(`/share/${trip.id}`)}>
+                  <div key={trip.id} className="group cursor-pointer relative bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onClick={() => router.push(`/?view=home&tripId=${trip.id}`)}>
                     <div className="relative aspect-[4/3] bg-secondary overflow-hidden">
-                      <img src={coverImage} alt={trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80" }} />
+                      {/* onError에서 고품질 랜덤 여행 이미지로 fallback */}
+                      <img
+                        src={coverImage}
+                        alt={trip.destination}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                        onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80" }}
+                      />
                       <div className="absolute top-3 left-3 bg-card/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm text-foreground">{trip.duration}</div>
                     </div>
                     <div className="p-5">

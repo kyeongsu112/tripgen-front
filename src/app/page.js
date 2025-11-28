@@ -15,8 +15,50 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-//const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
+// ✨ [Optimization] Lazy Loading Image Component
+function PlaceImage({ photoUrl, placeName }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  if (!photoUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">
+        📍
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-secondary text-foreground/60 gap-2">
+        <span className="text-2xl">📷</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsLoaded(true);
+          }}
+          className="text-xs font-bold bg-white dark:bg-slate-700 border border-border px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition"
+        >
+          사진 보기
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={photoUrl}
+      alt={placeName}
+      className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+      onError={(e) => {
+        e.target.style.display = 'none';
+        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl bg-secondary opacity-50">🚫</div>';
+      }}
+    />
+  );
+}
+
+//const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 if (!GOOGLE_MAPS_API_KEY) {
@@ -102,6 +144,28 @@ function HomeContent() {
       fetchMyTrips();
     }
   }, [activeTab, user]);
+
+  // ✨ [New] tripId 쿼리 파라미터 처리
+  useEffect(() => {
+    const tripId = searchParams.get('tripId');
+    if (tripId && activeTab === 'home') {
+      const fetchTrip = async () => {
+        setLoading(true);
+        try {
+          const res = await axios.get(`${API_BASE_URL}/public/trip/${tripId}`);
+          if (res.data.success) {
+            setResult(res.data.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch trip:", err);
+          alert("일정을 불러올 수 없습니다.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchTrip();
+    }
+  }, [searchParams, activeTab]);
 
   const fetchMyTrips = async () => {
     if (!user) return;
@@ -314,18 +378,24 @@ function HomeContent() {
   const getMapUrl = (activities) => {
     if (!activities || activities.length === 0) return null;
 
+    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const baseUrl = "https://www.google.com/maps/embed/v1";
+
+    // 1. View specific place
     if (selectedActivity) {
       const query = selectedActivity.place_id
         ? `place_id:${selectedActivity.place_id}`
         : encodeURIComponent(selectedActivity.place_name);
-      return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+      return `${baseUrl}/place?key=${API_KEY}&q=${query}`;
     }
 
+    // 2. View full route
     const validPlaces = activities.filter(a => a.place_name && !a.place_name.includes("이동"));
+
     if (validPlaces.length < 2) {
       if (validPlaces.length === 1) {
         const query = validPlaces[0].place_id ? `place_id:${validPlaces[0].place_id}` : encodeURIComponent(validPlaces[0].place_name);
-        return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${query}`;
+        return `${baseUrl}/place?key=${API_KEY}&q=${query}`;
       }
       return null;
     }
@@ -338,12 +408,9 @@ function HomeContent() {
       const wpList = validPlaces.slice(1, -1).map(p => p.place_id ? `place_id:${p.place_id}` : encodeURIComponent(p.place_name)).join("|");
       waypoints = `&waypoints=${wpList}`;
     }
-    return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
-  };
 
-  if (isUserLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>;
-  }
+    return `${baseUrl}/directions?key=${API_KEY}&origin=${origin}&destination=${destination}${waypoints}&mode=transit`;
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans transition-colors duration-300">
@@ -598,7 +665,7 @@ function HomeContent() {
                             <div onClick={() => { setSelectedActivity(act); setShowMobileMap(true); }} className={`bg-card rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedActivity === act ? 'border-rose-500 ring-2 ring-rose-100 dark:ring-rose-900' : 'border-border'}`}>
                               <div className="flex flex-col sm:flex-row">
                                 <div className="w-full sm:w-32 h-32 sm:h-auto sm:min-h-[8rem] bg-secondary shrink-0 relative overflow-hidden">
-                                  {act.photoUrl ? <img src={act.photoUrl} alt={act.place_name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition duration-700" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('flex', 'items-center', 'justify-center'); e.target.parentElement.innerHTML = '<div class="text-2xl opacity-20">📍</div>'; }} /> : <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">📍</div>}
+                                  <PlaceImage photoUrl={act.photoUrl} placeName={act.place_name} />
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between">
                                   <div>
