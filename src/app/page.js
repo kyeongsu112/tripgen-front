@@ -16,30 +16,12 @@ const supabase = createClient(
 );
 
 // ✨ [Optimization] Lazy Loading Image Component
+// ✨ [Optimization] Lazy Loading Image Component (Auto-load with Naver)
 function PlaceImage({ photoUrl, placeName }) {
-  const [isLoaded, setIsLoaded] = useState(false);
-
   if (!photoUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">
         📍
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-secondary text-foreground/60 gap-2">
-        <span className="text-2xl">📷</span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsLoaded(true);
-          }}
-          className="text-xs font-bold bg-white dark:bg-slate-700 border border-border px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition"
-        >
-          사진 보기
-        </button>
       </div>
     );
   }
@@ -57,8 +39,8 @@ function PlaceImage({ photoUrl, placeName }) {
   );
 }
 
-const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-//const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
+//const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 if (!GOOGLE_MAPS_API_KEY) {
@@ -346,15 +328,17 @@ function HomeContent() {
     }
   };
 
+  // ✨ [수정] 구글 포토 URL 조회 로직을 완전히 삭제 (비용 0원)
   const getTripCoverImage = (trip) => {
-    try {
-      for (const day of trip.itinerary_data.itinerary) {
-        for (const activity of day.activities) {
-          if (activity.photoUrl) return activity.photoUrl;
-        }
-      }
-    } catch (e) { }
-    return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
+    // 1. 목적지(trip.destination)가 있으면 Unsplash에서 검색 (비용 무료)
+    if (trip.destination) {
+      return `https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop`;
+      // 동적 이미지를 원하시면 아래 주석을 해제하세요 (단, 로딩 속도 차이 있음)
+      // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
+    }
+
+    // 2. 기본 고정 이미지
+    return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
   };
 
   const handleShare = (e, tripId) => {

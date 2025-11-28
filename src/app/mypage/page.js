@@ -12,8 +12,8 @@ const supabase = createClient(
 );
 
 // 배포 주소 (Render)
-const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-// const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트 시 주석 해제
+//const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트 시 주석 해제
 
 export default function MyPage() {
   const [user, setUser] = useState(null);
@@ -177,19 +177,17 @@ export default function MyPage() {
     }
   };
 
-  // ✨ [수정] 비용 절감을 위해 구글 포토 URL 검색 로직 제거
-  // 대신 무료 이미지(Unsplash 등)를 고정적으로 사용하거나 목적지 키워드로 검색
+  // ✨ [수정됨] 구글 포토 URL 조회 로직을 완전히 삭제했습니다.
   const getTripCoverImage = (trip) => {
-    // ⚠️ 비용 위험: 구글 포토 URL을 사용하면 목록 조회 시마다 과금됩니다.
-    // 따라서 여기서는 구글 URL을 찾지 않고, 바로 무료 이미지를 반환합니다.
+    // 1. 목적지(trip.destination)가 있으면 Unsplash에서 검색 (비용 무료)
+    if (trip.destination) {
+      // encodeURIComponent를 사용하여 한글 깨짐 방지
+      return `https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop`;
+      // 또는 동적 이미지를 원하신다면 아래 주석을 해제하세요 (단, source.unsplash.com은 느릴 수 있음)
+      // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
+    }
 
-    // 무료 여행 이미지 (Unsplash Source는 deprecated 되었으므로 고정 이미지나 다른 서비스 권장)
-    // 여기서는 예시로 고정된 고화질 여행 이미지를 사용하거나, 에러 시 처리되는 이미지를 메인으로 씁니다.
-
-    // 1. 목적지가 있다면 텍스트 기반 이미지 서비스 시도 (선택 사항)
-    // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`; 
-
-    // 2. 안전하게 고정 이미지 사용 (비용 0원)
+    // 2. 기본 고정 이미지 (비용 무료)
     return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
   };
 

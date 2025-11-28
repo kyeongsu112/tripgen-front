@@ -9,31 +9,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// ✨ [추가] 비용 절감을 위한 Lazy Loading 이미지 컴포넌트
+// ✨ [Optimization] Lazy Loading Image Component (Auto-load with Naver)
 function PlaceImage({ photoUrl, placeName }) {
-  const [isLoaded, setIsLoaded] = useState(false);
-
   if (!photoUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center text-2xl bg-slate-50 dark:bg-slate-700 text-slate-300">
         📍
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 gap-2">
-        <span className="text-2xl">📷</span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsLoaded(true);
-          }}
-          className="text-xs font-bold bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition"
-        >
-          사진 보기
-        </button>
       </div>
     );
   }
