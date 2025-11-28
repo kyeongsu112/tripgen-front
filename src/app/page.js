@@ -57,8 +57,8 @@ function PlaceImage({ photoUrl, placeName }) {
   );
 }
 
-//const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
+const API_BASE_URL = "https://tripgen-server.onrender.com/api";
+//const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 if (!GOOGLE_MAPS_API_KEY) {
