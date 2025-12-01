@@ -458,7 +458,7 @@ function HomeContent() {
                         </div>
                       </div>
                       <div className="px-1">
-                        <h3 className="font-bold text-lg text-foreground truncate mb-1 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
+                        <h3 className="font-bold text-lg text-foreground truncate mb-1 group-hover:text-rose-500 transition-colors">{trip.itinerary_data?.trip_title || trip.destination}</h3>
                         <div className="flex justify-between items-center text-sm"><p className="text-foreground/60 font-medium flex items-center gap-1"><span>📍</span> {trip.destination}</p><p className="text-foreground/50 text-xs">{new Date(trip.created_at).toLocaleDateString()}</p></div>
                       </div>
                     </div>

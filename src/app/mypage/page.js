@@ -325,7 +325,7 @@ export default function MyPage() {
                     </div>
                     <div className="p-5">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg md:text-xl text-foreground truncate pr-2 group-hover:text-rose-500 transition-colors">{trip.itinerary_data.trip_title}</h3>
+                        <h3 className="font-bold text-lg md:text-xl text-foreground truncate pr-2 group-hover:text-rose-500 transition-colors">{trip.itinerary_data?.trip_title || trip.destination}</h3>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-foreground/60 font-medium">
                         <span className="flex items-center gap-1"><span>📍</span> {trip.destination}</span>
