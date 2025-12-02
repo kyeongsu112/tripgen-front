@@ -5,15 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 
-// --- 설정 ---
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-// 배포 주소 (Render)
-//const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-const API_BASE_URL = "http://localhost:8080/api"; // 로컬 테스트 시 주석 해제
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const API_BASE_URL = "https://tripgen-server.onrender.com/api";
 
 export default function MyPage() {
   const [user, setUser] = useState(null);
@@ -177,21 +170,21 @@ export default function MyPage() {
     }
   };
 
-  // ✨ [수정됨] 구글 포토 URL 조회 로직을 완전히 삭제했습니다.
   const getTripCoverImage = (trip) => {
-    // 1. 목적지(trip.destination)가 있으면 Unsplash에서 검색 (비용 무료)
-    if (trip.destination) {
-      // encodeURIComponent를 사용하여 한글 깨짐 방지
-      return `https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop`;
-      // 또는 동적 이미지를 원하신다면 아래 주석을 해제하세요 (단, source.unsplash.com은 느릴 수 있음)
-      // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
-    }
-
-    // 2. 기본 고정 이미지 (비용 무료)
+    if (trip.itinerary_data?.cover_image) return trip.itinerary_data.cover_image;
+    if (trip.destination) return `${API_BASE_URL}/place-image?query=${encodeURIComponent(trip.destination)}`;
     return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground"><div className="animate-spin text-4xl">⚪</div></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="animate-spin text-4xl">⚪</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   const tier = limitInfo?.tier || 'free';
   let maxLimit = 3;
@@ -283,7 +276,7 @@ export default function MyPage() {
         <div className="bg-card px-6 py-3 rounded-xl border border-border w-full md:w-64 mb-8 md:mb-12">
           <div className="flex justify-between text-xs font-bold text-foreground/60 mb-2">
             <span>이번 달 생성</span>
-            <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit} {limitInfo?.ad_credits > 0 && `(+${limitInfo.ad_credits})`}</span>
+            <span>{limitInfo?.usage_count} / {tier === 'admin' ? '∞' : maxLimit}</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
             <div className="bg-rose-500 h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>

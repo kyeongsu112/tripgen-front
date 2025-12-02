@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
 import WeatherWidget from "@/components/WeatherWidget";
-import AdRewardModal from "@/components/AdRewardModal";
 
 
 // --- 설정 ---
@@ -40,8 +39,15 @@ function PlaceImage({ photoUrl, placeName }) {
 }
 
 //const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-const API_BASE_URL = "http://localhost:8080/api";  // 로컬 서버 사용
+//const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+const API_BASE_URL = "https://tripgen-server.onrender.com/api";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+const getTripCoverImage = (trip) => {
+  if (trip.itinerary_data?.cover_image) return trip.itinerary_data.cover_image;
+  if (trip.destination) return `${API_BASE_URL}/place-image?query=${encodeURIComponent(trip.destination)}`;
+  return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
+};
 
 if (!GOOGLE_MAPS_API_KEY) {
   console.error("⚠️ Google Maps API Key is missing! Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env.local file.");
@@ -73,15 +79,10 @@ function HomeContent() {
   const [modifying, setModifying] = useState(false);
   const [modificationPrompt, setModificationPrompt] = useState("");
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const [showAdModal, setShowAdModal] = useState(false);
 
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showMobileMap, setShowMobileMap] = useState(false);
 
-  const [generateCount, setGenerateCount] = useState(0);
-  const [showAd, setShowAd] = useState(false);
-  const [adTimer, setAdTimer] = useState(30);
-  const [pendingAction, setPendingAction] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
 
 
@@ -163,14 +164,9 @@ function HomeContent() {
   }, [currentDayIndex]);
 
   useEffect(() => {
-    let interval;
-    if (showAd && adTimer > 0) {
-      interval = setInterval(() => {
-        setAdTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [showAd, adTimer]);
+    setSelectedActivity(null);
+    setShowMobileMap(false);
+  }, [currentDayIndex]);
 
   const handleLogoClick = () => {
     router.push('/?view=home');
@@ -244,15 +240,11 @@ function HomeContent() {
     try {
       const res = await axios.post(`${API_BASE_URL}/generate-trip`, { ...formData, user_id: user?.id });
       setResult(res.data.data);
-
-
-
-      setGenerateCount(prev => prev + 1);
       fetchUsageInfo(user.id);
     } catch (err) {
-      // 한도 초과 시 광고 모달 표시
-      if (err.response?.status === 403 && err.response?.data?.canEarnMore) {
-        setShowAdModal(true);
+      // 한도 초과 시 안내
+      if (err.response?.status === 403) {
+        alert("이번 달 생성 한도를 모두 사용했습니다. (최대 5회)");
       } else {
         alert("오류: " + (err.response?.data?.error || err.message));
       }
@@ -287,22 +279,7 @@ function HomeContent() {
       }
     }
 
-    if (generateCount > 0 && generateCount % 3 === 0 && !showAd) {
-      setPendingAction(() => executeGenerate);
-      setAdTimer(30);
-      setShowAd(true);
-    } else {
-      executeGenerate();
-    }
-  };
-
-  const closeAdAndResume = () => {
-    setShowAd(false);
-    setGenerateCount(prev => prev + 1);
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
-    }
+    executeGenerate();
   };
 
   const handleModify = async () => {
@@ -326,27 +303,6 @@ function HomeContent() {
     } finally {
       setModifying(false);
     }
-  };
-
-  // ✨ [수정] 구글 포토 URL 조회 로직을 완전히 삭제 (비용 0원)
-  const getTripCoverImage = (trip) => {
-    // 1. 목적지(trip.destination)가 있으면 Unsplash에서 검색 (비용 무료)
-    if (trip.destination) {
-      return `https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop`;
-      // 동적 이미지를 원하시면 아래 주석을 해제하세요 (단, 로딩 속도 차이 있음)
-      // return `https://source.unsplash.com/featured/?${encodeURIComponent(trip.destination)},travel`;
-    }
-
-    // 2. 기본 고정 이미지
-    return "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
-  };
-
-  const handleShare = (e, tripId) => {
-    if (e) e.stopPropagation();
-    const shareUrl = `${window.location.origin}/share/${tripId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert("공유 링크가 복사되었습니다! 🔗");
-    }).catch(() => alert("링크 복사 실패"));
   };
 
   const handleDelete = async (e, tripId) => {
@@ -398,34 +354,6 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans transition-colors duration-300">
-      {/* 광고 모달 (다크모드 적용) */}
-      {showAd && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl relative">
-            <div className="p-4 bg-secondary flex justify-between items-center">
-              <span className="font-bold text-foreground">📢 잠시 광고 보고 가실게요!</span>
-              <span className="text-rose-500 font-black text-lg">{adTimer}초</span>
-            </div>
-            <div className="aspect-video bg-black relative">
-              <iframe
-                width="100%" height="100%"
-                src={`https://www.youtube.com/embed/fEErySYqItI?autoplay=1&controls=0&disablekb=1&modestbranding=1`}
-                title="Ad Video" frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen className="pointer-events-none"
-              ></iframe>
-              <div className="absolute inset-0"></div>
-            </div>
-            <div className="p-6 text-center">
-              <p className="text-foreground/80 mb-2 font-bold text-lg">광고를 30초간 시청해주시면<br /><span className="text-rose-500">여행 일정을 무료로 생성</span>해 드립니다! 🎁</p>
-              <button onClick={closeAdAndResume} disabled={adTimer > 0} className={`w-full py-4 rounded-xl font-black text-lg transition-all duration-300 ${adTimer > 0 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-rose-500 text-white hover:bg-rose-600 shadow-lg hover:-translate-y-1 animate-bounce-short"}`}>
-                {adTimer > 0 ? `광고 시청 중... (${adTimer})` : "광고 닫고 일정 생성하기 ✨"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 헤더 */}
       <Header
         user={user}
@@ -589,9 +517,29 @@ function HomeContent() {
 
             {result && result.itinerary_data && (
               <div className="animate-slide-up pb-20">
-                {/* 결과 화면 상단 */}
+                {/* ✨ 여행 커버 이미지 추가 */}
+                <div className="relative w-full h-48 md:h-64 rounded-3xl overflow-hidden mb-8 shadow-lg">
+                  <img
+                    src={getTripCoverImage(result)}
+                    alt={result.destination}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop" }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 md:p-8">
+                    <div className="text-white">
+                      <h1 className="text-3xl md:text-5xl font-black mb-2 drop-shadow-lg">{result.itinerary_data.trip_title}</h1>
+                      <p className="font-bold opacity-90 flex items-center gap-2 text-lg">
+                        <span>📍 {result.destination}</span>
+                        <span>•</span>
+                        <span>🗓️ {result.duration}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 결과 화면 상단 (기존 타이틀 섹션은 숨기거나 간소화) */}
                 <div className="mb-10 border-b border-border pb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div>
+                  <div className="hidden"> {/* 기존 타이틀 숨김 처리 (커버 이미지에 통합) */}
                     <h1 className="text-3xl md:text-4xl font-black text-foreground mb-3">{result.itinerary_data.trip_title}</h1>
                     <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-foreground/60">
                       <span className="bg-secondary px-3 py-1.5 rounded-lg border border-border flex items-center gap-1.5"><span className="text-rose-500">🗓️</span> {result.duration}</span>
@@ -725,16 +673,6 @@ function HomeContent() {
         )}
       </main>
       <footer className="border-t border-border py-10 mt-12 bg-secondary"><div className="max-w-7xl mx-auto px-6 text-center text-foreground/40 text-sm">© 2025 TripGen Inc. All rights reserved.</div></footer>
-
-      <AdRewardModal
-        isOpen={showAdModal}
-        onClose={() => setShowAdModal(false)}
-        onSuccess={() => {
-          fetchUsageInfo(user?.id);
-          executeGenerate();
-        }}
-        userId={user?.id}
-      />
     </div>
   );
 }

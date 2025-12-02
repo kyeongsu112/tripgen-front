@@ -11,8 +11,8 @@ const supabase = createClient(
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 // 배포 주소 (Render)
+//const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
-// const API_BASE_URL = "http://localhost:8080/api";
 
 export default function AdminPage() {
   const [trips, setTrips] = useState([]);
@@ -137,21 +137,19 @@ export default function AdminPage() {
         <div className="flex gap-2 mb-6 border-b border-border pb-1">
           <button
             onClick={() => setActiveTab("trips")}
-            className={`px-6 py-3 text-sm font-bold rounded-t-lg transition-all ${
-              activeTab === "trips"
-                ? "border-b-2 border-primary text-primary"
-                : "text-foreground/50 hover:text-foreground"
-            }`}
+            className={`px-6 py-3 text-sm font-bold rounded-t-lg transition-all ${activeTab === "trips"
+              ? "border-b-2 border-primary text-primary"
+              : "text-foreground/50 hover:text-foreground"
+              }`}
           >
             여행 기록 관리
           </button>
           <button
             onClick={() => setActiveTab("users")}
-            className={`px-6 py-3 text-sm font-bold rounded-t-lg transition-all ${
-              activeTab === "users"
-                ? "border-b-2 border-primary text-primary"
-                : "text-foreground/50 hover:text-foreground"
-            }`}
+            className={`px-6 py-3 text-sm font-bold rounded-t-lg transition-all ${activeTab === "users"
+              ? "border-b-2 border-primary text-primary"
+              : "text-foreground/50 hover:text-foreground"
+              }`}
           >
             사용자 등급 관리
           </button>
@@ -246,11 +244,10 @@ export default function AdminPage() {
                       </td>
                       <td className="p-5 text-center">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                            u.tier === "pro"
-                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                              : "bg-secondary text-foreground/70 border border-border/80"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${u.tier === "pro"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                            : "bg-secondary text-foreground/70 border border-border/80"
+                            }`}
                         >
                           {u.tier}
                         </span>
@@ -258,11 +255,10 @@ export default function AdminPage() {
                       <td className="p-5 text-center">
                         <button
                           onClick={() => handleUpdateTier(u.user_id, u.tier)}
-                          className={`text-xs px-4 py-2 rounded-lg font-bold transition shadow-sm ${
-                            u.tier === "free"
-                              ? "bg-primary text-white hover:bg-primary/90"
-                              : "bg-card border border-border text-foreground/70 hover:text-foreground hover:bg-background/60"
-                          }`}
+                          className={`text-xs px-4 py-2 rounded-lg font-bold transition shadow-sm ${u.tier === "free"
+                            ? "bg-primary text-white hover:bg-primary/90"
+                            : "bg-card border border-border text-foreground/70 hover:text-foreground hover:bg-background/60"
+                            }`}
                         >
                           {u.tier === "free" ? "PRO로 등급 업" : "FREE로 강등"}
                         </button>
