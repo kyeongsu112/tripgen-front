@@ -143,11 +143,42 @@ export default function MyPage() {
     }
   };
 
-  const handleShare = (tripId) => {
+  const handleShare = async (tripId) => {
+    if (!tripId) {
+      alert("여행 ID가 없습니다.");
+      return;
+    }
     const shareUrl = `${window.location.origin}/share/${tripId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert("공유 링크가 복사되었습니다! 🔗");
-    }).catch(() => alert("복사 실패"));
+    // 1. Web Share API (Mobile/Supported Browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'TripGen 여행 일정',
+          text: '제 여행 일정을 확인해보세요!',
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.log("Share API failed, falling back to clipboard", err);
+        } else {
+          return; // User cancelled
+        }
+      }
+    }
+
+    // 2. Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert("공유 링크가 복사되었습니다! 🔗\n" + shareUrl);
+      }).catch((err) => {
+        console.error("Clipboard failed", err);
+        prompt("이 링크를 복사하세요:", shareUrl);
+      });
+    } else {
+      // 3. Fallback
+      prompt("이 링크를 복사하세요:", shareUrl);
+    }
   };
 
   const handleLogout = async () => {
