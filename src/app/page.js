@@ -14,10 +14,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// ✨ [Optimization] Lazy Loading Image Component
 // ✨ [Optimization] Lazy Loading Image Component (Auto-load with Naver)
 function PlaceImage({ photoUrl, placeName }) {
-  if (!photoUrl) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!photoUrl || hasError) {
     return (
       <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">
         📍
@@ -30,10 +31,7 @@ function PlaceImage({ photoUrl, placeName }) {
       src={photoUrl}
       alt={placeName}
       className="absolute inset-0 w-full h-full object-cover animate-fade-in"
-      onError={(e) => {
-        e.target.style.display = 'none';
-        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl bg-secondary opacity-50">🚫</div>';
-      }}
+      onError={() => setHasError(true)}
     />
   );
 }

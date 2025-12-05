@@ -84,7 +84,7 @@ export default function BoardPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-xl border border-border">🥸</div>
                   <div>
-                    <p className="text-sm font-bold text-foreground flex items-center gap-2">익명 사용자 {post.email === ADMIN_EMAIL && <span className="bg-black dark:bg-white text-white dark:text-black text-[10px] px-1.5 py-0.5 rounded font-bold">ADMIN</span>}</p>
+                    <p className="text-sm font-bold text-foreground">익명 사용자</p>
                     <p className="text-[10px] font-bold text-foreground/40">{new Date(post.created_at).toLocaleDateString()} {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>

@@ -267,16 +267,20 @@ export default function SharePage({ params }) {
                       </div>
                     </div>
 
-                    {/* 이동 정보 */}
-                    {act.travel_info && (
+                    {/* 🚇 경로 보기 버튼 - 다음 장소로 가는 길찾기 */}
+                    {idx < currentDayPlan.activities.length - 1 && act.place_id && currentDayPlan.activities[idx + 1]?.place_id && (
                       <div className="mt-4 mb-2 flex items-center gap-2 text-xs text-slate-400 pl-1">
                         <div className="h-6 border-l border-dashed border-slate-300 dark:border-slate-600"></div>
-                        <div className="bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-100 dark:border-slate-700 flex items-center gap-1">
-                          <span>🚗</span>
-                          <span>{act.travel_info.duration}</span>
-                          <span className="text-slate-300 dark:text-slate-600">|</span>
-                          <span>{act.travel_info.distance}</span>
-                        </div>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&origin=place_id:${act.place_id}&destination=place_id:${currentDayPlan.activities[idx + 1].place_id}&travelmode=transit`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                        >
+                          <span>🚇</span>
+                          <span className="font-medium text-slate-600 dark:text-slate-300">경로 보기</span>
+                        </a>
                       </div>
                     )}
                   </div>

@@ -14,6 +14,29 @@ const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 //const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 const API_BASE_URL = "https://tripgen-server.onrender.com/api";
 
+// URL을 클릭 가능한 링크로 변환하는 함수
+function linkifyContent(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function CommunityPage() {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -133,14 +156,14 @@ export default function CommunityPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-foreground">{post.is_anonymous ? '익명 여행자' : post.nickname}</p>
                         {user && user.id === post.user_id && <span className="text-[10px] font-extrabold text-primary bg-rose-50 dark:bg-rose-900/30 px-1.5 rounded">ME</span>}
-                        {post.email === ADMIN_EMAIL && <span className="text-[10px] font-extrabold text-white bg-black dark:bg-white dark:text-black px-1.5 rounded">ADMIN</span>}
+
                       </div>
                       <p className="text-xs text-foreground/40 font-medium mt-0.5">{new Date(post.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                   {user && (user.id === post.user_id || user.email === ADMIN_EMAIL) && <button onClick={() => handleDelete(post.id)} className="text-xs font-bold text-foreground/30 hover:text-red-500 px-2 py-1 transition">삭제</button>}
                 </div>
-                <div className="pl-[52px]"><p className="text-foreground/80 text-base leading-relaxed whitespace-pre-wrap">{post.content}</p></div>
+                <div className="pl-[52px]"><p className="text-foreground/80 text-base leading-relaxed whitespace-pre-wrap">{linkifyContent(post.content)}</p></div>
               </div>
             ))
           )}
