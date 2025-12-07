@@ -41,6 +41,22 @@ export default function LoginPage() {
         return;
       }
 
+      // 탈퇴 후 30일 재가입 차단 체크
+      try {
+        const checkRes = await fetch("https://tripgen-server.onrender.com/api/auth/check-deleted", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const checkData = await checkRes.json();
+        if (checkData.blocked) {
+          setMessage(checkData.message);
+          return;
+        }
+      } catch (err) {
+        console.error("Check deleted error:", err);
+      }
+
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -184,13 +200,12 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-card border border-border hover:bg-secondary text-foreground font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3"
             >
-              {/* 로컬 이미지 사용 (다크모드에서도 잘 보이도록 배경 조정은 불필요) */}
               <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" className="w-5 h-5" />
               <span>Google 계정으로 계속하기</span>
             </button>
 
             {message && (
-              <div className={`mt-6 p-4 rounded-xl text-sm font-medium text-center ${message.includes('오류') ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'}`}>
+              <div className={`mt-6 p-4 rounded-xl text-sm font-medium text-center ${message.includes('오류') ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : message.includes('30일') || message.includes('재가입') ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'}`}>
                 {message}
               </div>
             )}

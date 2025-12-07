@@ -9,25 +9,31 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// ✨ [Optimization] Lazy Loading Image Component (Auto-load with Naver)
+// ✨ [Optimization] Lazy Loading Image Component with Fallback
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
+
 function PlaceImage({ photoUrl, placeName }) {
-  if (!photoUrl) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-2xl bg-slate-50 dark:bg-slate-700 text-slate-300">
-        📍
-      </div>
-    );
-  }
+  const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(photoUrl || FALLBACK_IMAGE);
+
+  useEffect(() => {
+    setImgSrc(photoUrl || FALLBACK_IMAGE);
+    setHasError(false);
+  }, [photoUrl]);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(FALLBACK_IMAGE);
+    }
+  };
 
   return (
     <img
-      src={photoUrl}
+      src={imgSrc}
       alt={placeName}
       className="w-full h-full object-cover animate-fade-in"
-      onError={(e) => {
-        e.target.style.display = 'none';
-        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl bg-slate-50 opacity-50">🚫</div>';
-      }}
+      onError={handleError}
     />
   );
 }

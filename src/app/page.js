@@ -15,23 +15,31 @@ const supabase = createClient(
 );
 
 // ✨ [Optimization] Lazy Loading Image Component (Auto-load with Naver)
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=800&auto=format&fit=crop";
+
 function PlaceImage({ photoUrl, placeName }) {
   const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(photoUrl || FALLBACK_IMAGE);
 
-  if (!photoUrl || hasError) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-2xl bg-secondary text-foreground/20">
-        📍
-      </div>
-    );
-  }
+  // photoUrl이 변경되면 imgSrc도 업데이트
+  useEffect(() => {
+    setImgSrc(photoUrl || FALLBACK_IMAGE);
+    setHasError(false);
+  }, [photoUrl]);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(FALLBACK_IMAGE);
+    }
+  };
 
   return (
     <img
-      src={photoUrl}
+      src={imgSrc}
       alt={placeName}
       className="absolute inset-0 w-full h-full object-cover animate-fade-in"
-      onError={() => setHasError(true)}
+      onError={handleError}
     />
   );
 }
