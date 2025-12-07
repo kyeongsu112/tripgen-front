@@ -81,18 +81,38 @@ export default function MyPage() {
       setIsEditing(false);
       return;
     }
+
+    // 공백 제거 및 검증
+    const trimmedNickname = newNickname.trim();
+    if (!trimmedNickname || trimmedNickname.length < 2 || trimmedNickname.length > 12) {
+      alert("닉네임은 2~12자로 입력해주세요");
+      return;
+    }
+
     try {
+      // 1. 서버 API 호출 (기존 게시글 닉네임도 업데이트)
+      const res = await axios.put(`${API_BASE_URL}/user/profile`, {
+        user_id: user.id,
+        nickname: trimmedNickname
+      });
+
+      if (!res.data.success) {
+        throw new Error(res.data.error || "업데이트 실패");
+      }
+
+      // 2. Supabase 메타데이터도 업데이트
       const { error } = await supabase.auth.updateUser({
-        data: { nickname: newNickname }
+        data: { nickname: trimmedNickname }
       });
       if (error) throw error;
 
-      setNickname(newNickname);
+      setNickname(trimmedNickname);
+      setNewNickname(trimmedNickname);
       setIsEditing(false);
       router.refresh();
       alert("닉네임이 변경되었습니다! ✨");
     } catch (err) {
-      alert("업데이트 실패: " + err.message);
+      alert("업데이트 실패: " + (err.response?.data?.error || err.message));
     }
   };
 
