@@ -196,9 +196,9 @@ function CommentSection({ postId, user }) {
   );
 }
 
-// 메인 content에서 tripgen 링크 추출
+// 메인 content에서 tripgen 링크 추출 (www 포함)
 function extractTripLinks(content) {
-  const regex = /https?:\/\/tripgen\.app\/share\/([a-zA-Z0-9-]+)/g;
+  const regex = /https?:\/\/(?:www\.)?tripgen\.app\/share\/([a-zA-Z0-9-]+)/g;
   const matches = [];
   let match;
   while ((match = regex.exec(content)) !== null) {
@@ -207,9 +207,9 @@ function extractTripLinks(content) {
   return matches;
 }
 
-// 텍스트에서 링크 제거
+// 텍스트에서 링크 제거 (www 포함)
 function removeLinks(text) {
-  return text.replace(/https?:\/\/tripgen\.app\/share\/[^\s]+/g, '').trim();
+  return text.replace(/https?:\/\/(?:www\.)?tripgen\.app\/share\/[^\s]+/g, '').trim();
 }
 
 export default function CommunityPage() {
@@ -219,26 +219,31 @@ export default function CommunityPage() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState("latest"); // latest | popular
-  const [period, setPeriod] = useState("all"); // all | day | week | month
+  const [sort, setSort] = useState("latest");
+  const [period, setPeriod] = useState("all");
 
   const router = useRouter();
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) setUser(session.user);
-      fetchPosts();
+      if (session) {
+        setUser(session.user);
+        fetchPosts(session.user.id);
+      } else {
+        fetchPosts();
+      }
     };
     init();
   }, []);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (userId = null) => {
     try {
       const params = new URLSearchParams();
       if (sort === 'popular') params.append('sort', 'popular');
       if (period !== 'all') params.append('period', period);
-      if (user?.id) params.append('user_id', user.id);
+      const effectiveUserId = userId || user?.id;
+      if (effectiveUserId) params.append('user_id', effectiveUserId);
 
       const res = await axios.get(`${API_BASE_URL}/community?${params.toString()}`);
       setPosts(res.data.data);

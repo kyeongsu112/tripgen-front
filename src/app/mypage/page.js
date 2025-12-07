@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
@@ -46,7 +46,6 @@ export default function MyPage() {
         if (meta?.custom_avatar_url) {
           setAvatarUrl(`${meta.custom_avatar_url}?t=${new Date().getTime()}`);
         } else if (meta?.avatar_url) {
-          // 캐시 방지를 위해 시간 쿼리 추가
           setAvatarUrl(`${meta.avatar_url}?t=${new Date().getTime()}`);
         }
 
@@ -118,7 +117,6 @@ export default function MyPage() {
       });
       if (updateError) throw updateError;
 
-      // 세션 강제 리프레시 (중요!)
       await supabase.auth.refreshSession();
 
       setAvatarUrl(publicUrl);
@@ -149,7 +147,6 @@ export default function MyPage() {
       return;
     }
     const shareUrl = `${window.location.origin}/share/${tripId}`;
-    // 1. Web Share API (Mobile/Supported Browsers)
     if (navigator.share) {
       try {
         await navigator.share({
@@ -162,12 +159,11 @@ export default function MyPage() {
         if (err.name !== 'AbortError') {
           console.log("Share API failed, falling back to clipboard", err);
         } else {
-          return; // User cancelled
+          return;
         }
       }
     }
 
-    // 2. Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareUrl).then(() => {
         alert("공유 링크가 복사되었습니다! 🔗\n" + shareUrl);
@@ -176,7 +172,6 @@ export default function MyPage() {
         prompt("이 링크를 복사하세요:", shareUrl);
       });
     } else {
-      // 3. Fallback
       prompt("이 링크를 복사하세요:", shareUrl);
     }
   };
@@ -300,7 +295,6 @@ export default function MyPage() {
 
           <div className="flex gap-3 w-full md:w-auto">
             <button onClick={handleLogout} className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-secondary hover:bg-border text-foreground font-bold transition text-sm md:text-base">로그아웃</button>
-            <button className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-lg shadow-rose-200 dark:shadow-none transition text-sm md:text-base">프로필 수정</button>
           </div>
         </div>
 
@@ -338,7 +332,6 @@ export default function MyPage() {
                 return (
                   <div key={trip.id} className="group cursor-pointer relative bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onClick={() => router.push(`/?view=home&tripId=${trip.id}`)}>
                     <div className="relative aspect-[4/3] bg-secondary overflow-hidden">
-                      {/* onError에서 고품질 랜덤 여행 이미지로 fallback */}
                       <img
                         src={coverImage}
                         alt={trip.destination}
