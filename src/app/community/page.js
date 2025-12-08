@@ -138,8 +138,12 @@ function CommentSection({ postId, user }) {
             <>
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2 text-sm">
-                  <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs">
-                    {comment.is_anonymous ? '🥸' : '😊'}
+                  <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs overflow-hidden border border-border">
+                    {comment.is_anonymous ? '🥸' : (
+                      comment.avatar_url ? (
+                        <img src={comment.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : '😊'
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -395,8 +399,12 @@ export default function CommunityPage() {
                 <div key={post.id} className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm hover:shadow-xl transition duration-300">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border ${post.is_anonymous ? 'bg-secondary border-border' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/30'}`}>
-                        {post.is_anonymous ? '🥸' : '😎'}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border overflow-hidden ${post.is_anonymous ? 'bg-secondary border-border' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/30'}`}>
+                        {post.is_anonymous ? '🥸' : (
+                          post.avatar_url ? (
+                            <img src={post.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : '😎'
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
